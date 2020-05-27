@@ -9,7 +9,7 @@ DESIGN options {
         NEW tabbedPane {
             type = TABBED;
             fill = 1;
-            NEW general {
+            NEW commons {
                 caption = 'Основные';
             }
         }
@@ -17,7 +17,7 @@ DESIGN options {
 } 
 
 NAVIGATOR {
-    NEW FOLDER retail 'Розничная торговля' WINDOW toolbar {
+    NEW FOLDER retail 'Розничная торговля' WINDOW toolbar IMAGE 'retail.png' {
         NEW FOLDER operations 'Операции' {  
         }
         NEW FOLDER settings 'Настройка' {

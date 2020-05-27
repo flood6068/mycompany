@@ -1,19 +1,22 @@
 MODULE Adjustment;
 
-REQUIRE InventorySettings, Location, Product, InvLedger, Company, BarCode, Doc;
+REQUIRE InventorySettings, LocationEmployee, Product, InvLedger, Company, BarCode, Doc;
                                   
 NAMESPACE Inventory;
 
 CLASS Adjustment 'Инвентаризация';
 
-@defineStatus(adjustment, 'инвентаризации');
+@defineDocStatus(adjustment, 'инвентаризации');
 
 dateTime 'Дата' = DATA DATETIME (Adjustment);
 WHEN LOCAL SET(Adjustment a IS Adjustment) AND NOT CHANGED(dateTime(a)) DO dateTime(a) <- currentDateTime();
 
 @defineNumber(adjustment, 'Инвентаризации', 'ИН');
+
+numberDate 'Описание' (Adjustment a) = number(a) + ' от ' + dateTime(a) IN id;
+
 DESIGN options {
-    general {
+    commons {
         MOVE PROPERTY(nameNumeratorAdjustment());
     }
 }
@@ -27,7 +30,7 @@ CLASS AdjustmentType 'Тип инвентаризации' {
     category 'По категории',
     manual 'Вручную'
 }
-name 'Имя' (AdjustmentType o) = staticCaption(o) IF o IS AdjustmentType CHARWIDTH 15;
+name 'Имя' (AdjustmentType o) = ISTRING[100](staticCaption(o)) IF o IS AdjustmentType CHARWIDTH 15;
 
 FORM type 'Тип инвентаризации'
     OBJECTS t = AdjustmentType PANEL
@@ -86,6 +89,7 @@ FORM adjustment 'Инвентаризация'
 ;
 
 DESIGN adjustment {
+    caption = (CONCAT ' ', 'Инвентаризация', '№' + number(a), 'от ' + dateTime(a));
     OBJECTS {
         NEW header {
             NEW headerCenter {
@@ -127,7 +131,9 @@ FORM adjustments 'Инвентаризации'
     LIST Adjustment OBJECT a
 ;
 
-@defineStatusForm(adjustment, a);
+@defineDocStatusForm(adjustment, a);
+@defineDocLinesCount(adjustment, a);
+@defineDocLocationAccess(adjustment, a);
 
 NAVIGATOR {
     operations {
@@ -158,7 +164,7 @@ newAdjustment 'Инвентаризация' () {
             DIALOG adjustmentType OBJECTS a = na NOMANAGESESSION DO { 
                 FOR (level(Location loc, location(na)) AND onHand(loc, Product p)) AND 
                     (level(category(p), category(na)) OR NOT type(na) = AdjustmentType.category) AND 
-                    NOT type(na) = AdjustmentType.manual DO NEW l = AdjustmentLine {
+                    NOT type(na) = AdjustmentType.manual ORDER name(p), p DO NEW l = AdjustmentLine {
                         adjustment(l) <- na;
                         product(l) <- p;
                         location(l) <- loc;

@@ -1,23 +1,24 @@
 MODULE SalesPricelistValue;
 
-REQUIRE SalesPricelistDone;
+REQUIRE SalesPricelistDone, ItemVariant;
 
 NAMESPACE Sales;
 
 // prices
 pricelistLineB (PriceType t, Item i, DATETIME d) = 
-    GROUP LAST PricelistLine prl IF item(prl) = i AND price(prl, t) AND done(pricelist(prl)) AND 
+    GROUP LAST PricelistLine prl IF item(prl) = primary(i) AND price(prl, t) AND done(pricelist(prl)) AND 
                NOT startDateTime(pricelist(prl)) >= d AND NOT endDateTime(pricelist(prl)) < d
           ORDER startDateTime(pricelist(prl)), prl;
 
-priceB (PriceType t, Item i, DATETIME d) = price(pricelistLineB(t, i, d), t);
+priceB 'Цена' (PriceType t, Item i, DATETIME d) = price(pricelistLineB(t, i, d), t);
 
 pricelistLineA (PriceType t, Item i, DATETIME d) = 
-    GROUP LAST PricelistLine prl IF item(prl) = i AND price(prl, t) AND done(pricelist(prl)) AND
+    GROUP LAST PricelistLine prl IF item(prl) = primary(i) AND price(prl, t) AND done(pricelist(prl)) AND
                NOT startDateTime(pricelist(prl)) > d AND NOT endDateTime(pricelist(prl)) < d
           ORDER startDateTime(pricelist(prl)), prl;
 
 priceA (PriceType t, Item i, DATETIME d) = price(pricelistLineA(t, i, d), t);
+startDateTimeA (PriceType t, Item i, DATETIME d) = startDateTime(pricelistLineA(t, i, d));
 
 overPriceA (PriceType t, Item i, DATETIME d) = OVERRIDE priceA(t, i, d), salesPrice(i);
 
@@ -31,5 +32,5 @@ currentPriceColor (PricelistLine l, PriceType t) =
 
 EXTEND FORM pricelist
     PROPERTIES    currentPrice(l, t) COLUMNS 'p' (t) HEADER name(t) + ' (текущая)' 
-                        SHOWIF showCurrentPrice(p) AFTER price(l, t) BACKGROUND currentPriceColor(l, t)
+                        SHOWIF showCurrentPrice(type(p), t) AFTER price(l, t) BACKGROUND currentPriceColor(l, t)
 ;

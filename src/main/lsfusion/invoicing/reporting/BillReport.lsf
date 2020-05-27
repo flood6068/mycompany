@@ -1,0 +1,35 @@
+MODULE BillReport;
+
+REQUIRE CreditNote, BillDebt, ItemAttribute;
+
+NAMESPACE Invoicing;
+
+nameItemCategory 'Категория номенклатуры' (BillLine l) = name(category(item(l)));
+
+attribute(BillLine l, ItemAttribute a) = value(attribute(item(l), a));
+
+FORM billReport 'Отчет по приобретениям'
+    OBJECTS a = ItemAttribute
+
+    OBJECTS report = (i = Bill, l = BillLine) PIVOT
+    PROPERTIES(i) READONLY nameType, dateTime, nameStatus, number, 
+                           nameVendor, nameVendorAccount, nameCompany, nameCompanyAccount, 
+                           namePaymentTerms, dueDateTime, note
+    PROPERTIES(l) READONLY nameItem, idItem, nameItemCategory 
+    PROPERTIES READONLY attribute(l, a) COLUMNS (a) HEADER name(a)
+    PROPERTIES(l) READONLY quantity, price, taxes 
+    PROPERTIES(l) READONLY MEASURE
+                           untaxedAmount, taxAmount, amount
+    FILTERS bill(l) = i
+;
+
+@defineDateTimeAggregationForm(billReport, i);
+@defineDateFilterForm(billReport, i);
+
+NAVIGATOR {
+    invoicing {
+        reporting {
+            NEW billReport;        
+        }
+    }
+}

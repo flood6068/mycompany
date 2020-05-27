@@ -1,0 +1,33 @@
+MODULE SalesOrderReport;
+
+REQUIRE SalesOrder, ItemAttribute;
+
+NAMESPACE Sales;
+
+attribute(OrderLine l, ItemAttribute a) = value(attribute(item(l), a));
+
+FORM salesOrderReport 'Отчет по заказам'
+    OBJECTS a = ItemAttribute
+
+    OBJECTS report = (o = Order, l = OrderLine) PIVOT
+    PROPERTIES(o) READONLY nameType, dateTime, nameStatus, number, customerReference, 
+                           nameCustomer, addressCustomer, deliveryAddress,
+                           nameLocation, scheduledDateTime,  
+                           validity, namePaymentTerms, nameRepresentative
+    PROPERTIES(l) READONLY nameItem
+    PROPERTIES READONLY attribute(l, a) COLUMNS (a) HEADER name(a) 
+    PROPERTIES(l) READONLY description, quantity, nameUom, price, discount, discountPrice, taxes
+    PROPERTIES(l) READONLY MEASURE
+                           untaxedAmount, taxAmount, amount
+    FILTERS order(l) = o,
+            accessGranted(location(o)) OR NOT location(o)
+;
+
+@defineDateTimeAggregationForm(salesOrderReport, o);
+@defineDateFilterForm(salesOrderReport, o);
+
+NAVIGATOR {
+    reporting {
+        NEW salesOrderReport;        
+    }
+}

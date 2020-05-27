@@ -1,7 +1,7 @@
 MODULE Invoice;
 
 REQUIRE InvoicingSettings, TaxItem, BankAccount, 
-        MetaTax, PaymentTermsSales,  
+        MetaTax, PaymentTermsSales, DateUtils,
         ItemSales, PartnerSales, Company, 
         BarCode, MetaNumerator, Doc,
         InvoiceType, Product;
@@ -10,7 +10,7 @@ NAMESPACE Invoicing;
 
 CLASS Invoice 'Реализация';
 
-@defineStatus(invoice, 'счета');
+@defineDocStatus(invoice, 'счета');
 
 // type
 type 'Тип' = DATA InvoiceType (Invoice) NONULL;
@@ -21,10 +21,11 @@ WHEN LOCAL SET(Invoice s IS Invoice) AND NOT CHANGED(type(s)) DO type(s) <- defa
 // dateTime
 dateTime 'Дата' = DATA DATETIME (Invoice) NONULL IN id;
 WHEN LOCAL SET (Invoice b IS Invoice) DO dateTime(b) <- currentDateTime();
+@defineDateTimeAggregation(Invoice);
 
 @defineNumberType(invoice);
 
-numberDate 'Описание' (Invoice i) = number(i) + ' от ' + dateTime(i);
+numberDate 'Описание' (Invoice i) = number(i) + ' от ' + dateTime(i) IN id;
 
 // customer
 customer = DATA Partner (Invoice);
@@ -87,6 +88,8 @@ CONSTRAINT item(InvoiceLine l) AND NOT canBeSold(item(l))
             CHECKED BY item 
             MESSAGE 'Номенклатура не предназначена для продажи';
 
+countProductLines 'Кол-во строк с товарами' (Invoice i) = GROUP SUM 1 IF invoice(InvoiceLine l) = i AND item(l) IS Product;
+
 uom = DATA Uom (InvoiceLine);
 nameUom 'Ед. изм.' (InvoiceLine l) = name(uom(l));
 WHEN LOCAL CHANGED(item(InvoiceLine l)) DO uom(l) <- uom(item(l)); 
@@ -98,7 +101,11 @@ quantity 'Кол-во' = DATA NUMERIC[16,3] (InvoiceLine) NONULL CHARWIDTH 7;
 weight 'Вес' (InvoiceLine l) = NUMERIC[16,3](quantity(l) * weight(item(l)));
 
 price 'Цена' = DATA NUMERIC[10,2] (InvoiceLine) NONULL;
-WHEN LOCAL SETCHANGED(item(InvoiceLine l)) AND NOT CHANGED(price(l)) DO price(l) <- salesPrice(item(l));
+
+defaultPrice = ABSTRACT CASE NUMERIC[10,2] (InvoiceLine);
+WHEN LOCAL SETCHANGED(item(InvoiceLine l)) AND NOT CHANGED(price(l)) DO price(l) <- defaultPrice(l);
+
+defaultPrice (InvoiceLine l) += WHEN salesPrice(item(l)) THEN salesPrice(item(l)); 
 
 @defineDocDiscount(invoice);
 
@@ -140,6 +147,7 @@ FORM invoice 'Реализация'
 ;
 
 DESIGN invoice {
+    caption = (CONCAT ' ', 'Реализация', '№' + number(i), 'от ' + dateTime(i));
     OBJECTS {
         NEW header {
             type = CONTAINERH;
@@ -217,7 +225,8 @@ FORM invoices 'Реализации'
 ;
 
 @defineTaxForm(invoice, i);
-@defineStatusForm(invoice, i);
+@defineDocStatusForm(invoice, i);
+@defineDocLinesCount(invoice, i);
 
 NAVIGATOR {
     operations {

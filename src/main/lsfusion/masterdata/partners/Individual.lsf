@@ -10,7 +10,7 @@ firstName 'Имя' = DATA ISTRING[30] (Individual) NONULL;
 lastName 'Фамилия' = DATA ISTRING[30] (Individual) NONULL;
 middleName 'Отчество' = DATA ISTRING[30] (Individual);
 
-legalEntity = DATA LegalEntity (Individual);
+legalEntity = DATA LegalEntity (Individual) NONULL;
 idLegalEntity 'Организация' (Individual i) = id(legalEntity(i));
 nameLegalEntity 'Организация' (Individual i) = name(legalEntity(i));
 
@@ -60,6 +60,12 @@ newIndividual 'Физическое лицо' () {
 } IMAGE 'add.png';
 
 EXTEND FORM partners
+    PROPERTIES newIndividual() DRAW p TOOLBAR
+;
+EXTEND FORM dialogPartners
+    EXTEND FILTERGROUP type
+        FILTER 'Физические лица' p IS Individual
+    
     PROPERTIES newIndividual() DRAW p TOOLBAR
 ;
 

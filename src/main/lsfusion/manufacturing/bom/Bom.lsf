@@ -62,6 +62,8 @@ quantity 'Кол-во' = DATA NUMERIC[16,3] (ComponentLine);
 
 costRatio 'Доля стоимости' = DATA NUMERIC[5,2] (ComponentLine);
 
+countComponentLine 'Компонентов' (Bom b) = GROUP SUM 1 IF bom(ComponentLine l) = b MATERIALIZED;
+
 // byproduct
 CLASS ByproductLine 'Строка производных номенклатур';
 
@@ -78,6 +80,8 @@ uom = DATA Uom (ByproductLine);
 nameUom 'Ед. изм.' (ByproductLine l) = name(uom(l));
 
 quantity 'Кол-во' = DATA NUMERIC[16,3] (ByproductLine);
+
+countByproductLine 'Отходов' (Bom b) = GROUP SUM 1 IF bom(ByproductLine l) = b MATERIALIZED;
 
 WHEN LOCAL SETCHANGED (item(ComponentLine c)) DO {
     uom(c) <- uom(item(c));
@@ -104,6 +108,7 @@ FORM bom 'Спецификация'
 ;
 
 DESIGN bom {
+    caption = (CONCAT ' ', 'Спецификация', '№' + number(b));
     OBJECTS {
         NEW actions {
             caption = 'Действия';
@@ -145,7 +150,7 @@ DESIGN bom {
 
 FORM boms 'Спецификации'
     OBJECTS b = Bom
-    PROPERTIES(b) READONLY number, nameItem, quantity, nameUom, name, archived
+    PROPERTIES(b) READONLY number, nameItem, quantity, nameUom, name, archived, countComponentLine, countByproductLine
     PROPERTIES(b) NEWSESSION NEW, EDIT, DELETE
     
     FILTERGROUP active
@@ -157,5 +162,49 @@ FORM boms 'Спецификации'
 NAVIGATOR {
     operations {
         NEW boms;
+    }
+}
+
+// copy
+extraCopy ABSTRACT (Bom, Bom);
+extraCopy ABSTRACT (ComponentLine, ComponentLine);
+
+copy 'Копировать' (Bom b) {
+    NEWSESSION {
+        NEW nb = Bom {
+            name(nb) <- name(b);
+            item(nb) <- item(b);
+            quantity(nb) <- quantity(b);
+            uom(nb) <- uom(b);
+            
+            FOR bom(ComponentLine l) = b DO NEW nl = ComponentLine {
+                bom(nl) <- nb;
+                item(nl) <- item(l);
+                uom(nl) <- uom(l);
+                quantity(nl) <- quantity(l);
+                costRatio(nl) <- costRatio(l);
+                
+                extraCopy(l, nl);
+            }
+            
+            FOR bom(ByproductLine l) = b DO NEW nl = ByproductLine {
+                bom(nl) <- nb;
+                product(nl) <- product(l);
+                uom(nl) <- uom(l);
+                quantity(nl) <- quantity(l);
+            }
+            
+            extraCopy(b, nb);
+            
+            SHOW bom OBJECTS b = nb DOCKED;
+        }
+    }
+}
+
+EXTEND FORM bom PROPERTIES copy(b);
+
+DESIGN bom {
+    actions {
+        MOVE PROPERTY(copy(b)); 
     }
 }

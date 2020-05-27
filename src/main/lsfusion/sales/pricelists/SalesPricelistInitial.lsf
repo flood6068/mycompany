@@ -1,0 +1,64 @@
+MODULE SalesPricelistInitial;
+
+REQUIRE SalesPricelistType;
+
+NAMESPACE Sales;
+
+loadDefaultData () + {
+    NEW t = PricelistType {
+        name(t) <- 'Оптовый';
+        id(t) <- 'wholesale';
+        in(t, PriceType pt) <- TRUE WHERE id(pt) = 'wholesale';
+        
+        showCost(t) <- TRUE;
+        showCurrentPrice(t, PriceType pt) <- TRUE WHERE in(t, pt);
+        showMarkup(t, PriceType pt) <- TRUE WHERE in(t, pt);
+
+        NEW n = Numerator {
+            name(n) <- 'Оптовый прайс';
+            series(n) <- 'ОП';
+            minValue(n) <- 1;
+            maxValue(n) <- 999999;
+            stringLength(n) <- 6;
+            numerator(t) <- n;
+        }
+    }
+    NEW t = PricelistType {
+        name(t) <- 'Розничный';
+        id(t) <- 'retail';
+        in(t, PriceType pt) <- TRUE WHERE id(pt) = 'retail';
+
+        showCost(t) <- TRUE;
+        showCurrentPrice(t, PriceType pt) <- TRUE WHERE in(t, pt);
+        showMarkup(t, PriceType pt) <- TRUE WHERE in(t, pt);
+
+        NEW n = Numerator {
+            name(n) <- 'Розничный прайс';
+            series(n) <- 'РП';
+            minValue(n) <- 1;
+            maxValue(n) <- 999999;
+            stringLength(n) <- 6;
+            numerator(t) <- n;
+        }
+    }
+    NEW t = PricelistType {
+        name(t) <- 'Акционный';
+        id(t) <- 'promotion';
+        in(t, PriceType pt) <- TRUE WHERE id(pt) = 'retail' OR id(pt) = 'promotion';
+        
+        basePriceType(t, PriceType pt) <- priceType('retail') WHERE id(pt) = 'promotion';
+
+        showCost(t) <- TRUE;
+        showCurrentPrice(t, PriceType pt) <- TRUE WHERE id(pt) = 'retail';
+        showMarkup(t, PriceType pt) <- TRUE WHERE in(t, pt);
+
+        NEW n = Numerator {
+            name(n) <- 'Акционный прайс';
+            series(n) <- 'АП';
+            minValue(n) <- 1;
+            maxValue(n) <- 999999;
+            stringLength(n) <- 6;
+            numerator(t) <- n;
+        }
+    }
+}

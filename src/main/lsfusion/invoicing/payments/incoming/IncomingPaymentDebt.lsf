@@ -6,6 +6,8 @@ NAMESPACE Invoicing;
 
 // extend
 EXTEND CLASS IncomingPayment : IncomingDebt;
+type (IncomingPayment p) += nameType(p);
+
 active (IncomingPayment p) += active(p);
 number (IncomingPayment p) += number(p);
 dateTime (IncomingPayment p) += dateTime(p);
@@ -28,12 +30,12 @@ pay 'Разнести' (IncomingPayment p, OutgoingDebt d) {
 
 EXTEND FORM incomingPayment
     OBJECTS d = OutgoingDebt
-    PROPERTIES(d) READONLY dateTime, number, type
+    PROPERTIES(d) READONLY dateTime, number, class, type
     PROPERTIES paid(p, d)
     FILTERS paid(p, d), active(d)
     
     OBJECTS dd = OutgoingDebt
-    PROPERTIES(dd) READONLY dateTime, number, type, left
+    PROPERTIES(dd) READONLY dateTime, number, class, type, left
     PROPERTIES pay(p, dd) TOOLBAR
     FILTERS canBePaid(p, dd), active(dd)   
 ;
@@ -52,4 +54,10 @@ DESIGN incomingPayment {
 WHEN (SETCHANGED(reference(IncomingPayment p)) OR SETCHANGED(partner(p)) OR SET(active(p))) AND 
      isISubstring(reference(p), number(OutgoingDebt d)) AND 
      canBePaid(p, d) DO
-    paid(p, d) <- left(p, d); 
+    paid(p, d) <- left(p, d);
+    
+countPaid 'Кол-во оплат' (IncomingDebt p) = GROUP SUM 1 IF paid(p, OutgoingDebt d) AND active(d) MATERIALIZED;
+
+EXTEND FORM incomingPayments
+    PROPERTIES(p) READONLY countPaid, paid
+;

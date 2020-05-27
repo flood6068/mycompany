@@ -5,7 +5,9 @@ REQUIRE InvLedger;
 NAMESPACE Inventory;
 
 CLASS ResLedger 'Регистр резервирования';
-type 'Тип' (ResLedger l) = objectClassName(l) IF l IS ResLedger CHARWIDTH 15;
+class 'Вид' (ResLedger l) = objectClassName(l) IF l IS ResLedger CHARWIDTH 15;
+
+type 'Тип' = ABSTRACT ISTRING[100] (ResLedger) MATERIALIZED;
 
 dateTime 'Время' = ABSTRACT DATETIME (ResLedger) MATERIALIZED;
 number 'Номер' = ABSTRACT STRING[31] (ResLedger);

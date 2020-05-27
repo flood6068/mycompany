@@ -9,16 +9,21 @@ attribute(ManufacturingOrder o, ItemAttribute a) = value(attribute(item(o), a));
 FORM manufacturingOrderReport 'Отчет по заказам'
     OBJECTS a = ItemAttribute
     
-    OBJECTS o = ManufacturingOrder
-    PROPERTIES(o) READONLY scheduledDateTime, number, nameItem
+    OBJECTS o = ManufacturingOrder PIVOT
+    PROPERTIES(o) READONLY nameType, scheduledDateTime, executionDateTime, nameStatus, number, 
+                           nameCompany, nameMaterialsLocation, nameProductsLocation, 
+                           nameItem, nameUom, descriptionBom
     PROPERTIES READONLY attribute(o, a) COLUMNS (a) HEADER name(a)
-    PROPERTIES(o) READONLY toManufacture, manufactured, nameUom, descriptionBom,
-                           nameCompany, nameMaterialsLocation, nameProductsLocation 
+    PROPERTIES(o) READONLY MEASURE toManufacture, manufactured
+    FILTERS accessGranted(materialsLocation(o)) OR accessGranted(productsLocation(o)) 
 ;
+
+@defineDateTimeAggregationForm(manufacturingOrderReport, o, scheduled);
+@defineDateFilterForm(manufacturingOrderReport, o, scheduled);
 
 NAVIGATOR {
     manufacturing {
-        reports {
+        reporting {
             NEW manufacturingOrderReport;        
         }
     }

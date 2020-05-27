@@ -26,7 +26,7 @@ DESIGN item {
         MOVE PROPERTY(canBeSold(i));       
     }
     tabs {
-        NEW sale {
+        NEW sales {
             caption = 'Продажа';
             showIf = canBeSold(i);
             MOVE PROPERTY(salesPrice(i));

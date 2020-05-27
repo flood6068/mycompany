@@ -4,7 +4,7 @@ REQUIRE SalesPriceType;
 
 NAMESPACE Sales;
 
-loadInitialData() + {
+loadDefaultData() + {
     NEW t = PriceType {
         name(t) <- 'Оптовая';
         id(t) <- 'wholesale';
@@ -13,6 +13,12 @@ loadInitialData() + {
     NEW t = PriceType {
         name(t) <- 'Розничная';
         id(t) <- 'retail';
+        taxIncluded(t) <- TRUE;
+    }    
+
+    NEW t = PriceType {
+        name(t) <- 'Акционная';
+        id(t) <- 'promotion';
         taxIncluded(t) <- TRUE;
     }    
 }

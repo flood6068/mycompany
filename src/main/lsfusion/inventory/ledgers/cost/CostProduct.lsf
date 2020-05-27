@@ -10,7 +10,7 @@ CLASS CostingMethod 'Методы расчета себестоимости' {
     fifo 'FIFO'
 }
 
-name 'Метод расчета себестоимости' (CostingMethod o) = staticCaption(o) IF o IS CostingMethod CHARWIDTH 30;
+name 'Метод расчета себестоимости' (CostingMethod o) = staticCaption(o) IF o IS CostingMethod CHARWIDTH 20;
 
 FORM costingMethods 'Методы расчета себестоимости'
     OBJECTS c = CostingMethod
@@ -25,7 +25,8 @@ nameDataCostingMethod 'Метод расчета себестоимости' (Ca
 costingMethod 'Методы расчета себестоимости' (Category c) = 
         GROUP LAST dataCostingMethod(Category parent) ORDER DESC level(c, parent) MATERIALIZED;
 
-costingMethod (Product p) = OVERRIDE costingMethod(category(p AS Product)), (CostingMethod.standardPrice IF p IS Product) MATERIALIZED;
+costingMethod (Product p) = OVERRIDE costingMethod(category(p AS Product)), (CostingMethod.fifo IF p IS Product) MATERIALIZED;
+nameCostingMethod 'Метод расчета себестоимости' (Product p) = name(costingMethod(p));
 
 EXTEND FORM category
     PROPERTIES(c) nameDataCostingMethod

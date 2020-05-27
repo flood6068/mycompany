@@ -6,5 +6,4 @@ REQUIRE MyCompany,
         InvoicingRu, 
         PurchaseRu,
         SalesRu,
-        ReceiptPrintRu,
-        ShipmentPrintRu;
+        CashRegisterAtol;

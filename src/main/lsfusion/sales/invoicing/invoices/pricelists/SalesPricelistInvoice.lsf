@@ -1,0 +1,63 @@
+MODULE SalesPricelistInvoice;
+
+REQUIRE Invoice, SalesPricelistValue;
+
+NAMESPACE Sales;
+
+// invoice type
+priceType = DATA PriceType (InvoiceType);
+namePriceType 'Вид цен' (InvoiceType t) = name(priceType(t));
+
+EXTEND FORM invoiceType
+    PROPERTIES(o) namePriceType
+;
+
+taxValid (InvoiceType it, PriceType pt) = 
+    (taxIncluded(it) AND taxIncluded(pt)) OR (NOT taxIncluded(pt) AND NOT taxIncluded(it));
+
+CONSTRAINT priceType(InvoiceType i) AND priceType(i) AND NOT taxValid(i, priceType(i))
+           CHECKED BY priceType[InvoiceType]
+           MESSAGE 'Для типа реализации выбран недопустимый вид цены, (не)включающий налоги'; 
+
+// price types
+priceType 'Вид цен' = DATA PriceType (Invoice);
+namePriceType 'Вид цен' (Invoice o) =  name(priceType(o));
+
+priceType (InvoiceLine l) = priceType(invoice(l));
+
+CONSTRAINT type(Invoice i) AND priceType(i) AND NOT taxValid(type(i), priceType(i))
+           CHECKED BY priceType[Invoice]
+           MESSAGE 'Для реализации выбран недопустимый для типа вид цены, (не)включающий налоги'; 
+
+WHEN LOCAL CHANGED(customer(Invoice o)) OR CHANGED(type(o)) DO 
+    priceType(o) <- OVERRIDE priceType(customer(o)), priceType(type(o));
+
+// price
+listPrice (InvoiceLine l) = overPriceA(priceType(invoice(l)), item(l), dateTime(invoice(l)));  
+defaultPrice (InvoiceLine l) += WHEN listPrice(l) THEN listPrice(l);
+                                    
+WHEN LOCAL (SETCHANGED(priceType(invoice(InvoiceLine l))) OR
+            (SETCHANGED(dateTime(invoice(l))) AND status(invoice(l)) = InvoiceStatus.draft)) 
+            AND NOT CHANGED(price(l)) DO {
+    price(l) <- defaultPrice(l); 
+}
+
+EXTEND FORM invoice
+    PROPERTIES(i) namePriceType
+;
+
+DESIGN invoice {
+    headerRight {
+        MOVE PROPERTY(namePriceType(i)); 
+    }
+}
+
+// search
+overListPrice 'Цена' (Invoice o, Item i) = overPriceA(priceType(o), i, dateTime(o));
+
+EXTEND FORM invoice
+    PROPERTIES(i, itm) READONLY overListPrice
+
+    FILTERGROUP pricelist
+        FILTER 'С ценой' overListPrice(i, itm)
+;

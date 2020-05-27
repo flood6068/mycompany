@@ -7,7 +7,7 @@ NAMESPACE Manufacturing;
 
 CLASS ManufacturingOrder 'Производственный заказ';
 
-@defineStatus(manufacturingOrder, 'производственного заказа');
+@defineDocStatus(manufacturingOrder, 'производственного заказа');
 
 type 'Тип' = DATA ManufacturingOrderType (ManufacturingOrder) NONULL;
 nameType 'Тип' (ManufacturingOrder o) = name(type(o));
@@ -16,8 +16,11 @@ WHEN LOCAL SET(ManufacturingOrder o IS ManufacturingOrder) AND NOT CHANGED(type(
 
 scheduledDateTime 'Дата начала' = DATA DATETIME (ManufacturingOrder);
 scheduledDateTime(ManufacturingOrder o) <- currentDateTime() WHEN SET(o IS ManufacturingOrder);
+@defineDateTimeAggregation(ManufacturingOrder, scheduled, ' начала');
 
 @defineNumber(manufacturingOrder, 'Производственные заказы', 'ПЗ');
+
+numberDate 'Описание' (ManufacturingOrder o) = number(o) + ' от ' + scheduledDateTime(o) IN id;
 
 item 'Номенклатура' = DATA Item (ManufacturingOrder) NONULL;
 nameItem 'Номенклатура' (ManufacturingOrder m) = name(item(m));
@@ -44,14 +47,14 @@ materialsLocation 'Списать из' = DATA Location (ManufacturingOrder) NON
 nameMaterialsLocation 'Списать из' (ManufacturingOrder m) = name(materialsLocation(m));
 WHEN LOCAL SETCHANGED(type(ManufacturingOrder mo)) AND NOT materialsLocation(mo) DO materialsLocation(mo) <- materialsLocation(type(mo));
 
-unbuild 'Разборка' = DATA BOOLEAN (ManufacturingOrder); 
+unbuild 'Разборка' (ManufacturingOrder mo)= unbuild(type(mo)); 
 
 // consumed
 CLASS ConsumedLine 'Материалы';
 
 manufacturingOrder = DATA ManufacturingOrder (ConsumedLine) NONULL DELETE;
 
-countConsumedLines (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m;
+countConsumedLine 'Строк материалов' (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m MATERIALIZED;
 index '№' = PARTITION SUM 1 ORDER ConsumedLine l BY manufacturingOrder(l) IN id MATERIALIZED CHARWIDTH 3;
 
 item 'Номенклатура' = DATA Item (ConsumedLine);
@@ -72,7 +75,7 @@ CLASS FinishedLine 'Продукция';
 
 manufacturingOrder = DATA ManufacturingOrder (FinishedLine) NONULL DELETE;
 
-countFinishedLines (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m;
+countFinishedLine 'Строк продукции' (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m MATERIALIZED;
 index '№' = PARTITION SUM 1 ORDER FinishedLine l BY manufacturingOrder(l) IN id MATERIALIZED CHARWIDTH 3;
 
 item 'Номенклатура' = DATA Item (FinishedLine);
@@ -103,11 +106,10 @@ scheduledDateTime 'Дата начала' (ConsumedLine l) = scheduledDateTime(m
 
 FORM manufacturingOrder 'Производственный заказ'
     OBJECTS o = ManufacturingOrder PANEL 
+    PROPERTIES(o) READONLY unbuild
     PROPERTIES(o) nameType, scheduledDateTime, number, nameCompany, 
-                  nameItem, unbuild, 
-                  toManufacture, nameUom, 
-                  descriptionBom, 
-                  nameMaterialsLocation 
+                  nameItem, toManufacture, nameUom, 
+                  descriptionBom, nameMaterialsLocation 
     
     OBJECTS c = ConsumedLine
     PROPERTIES(c) index READONLY, nameItem, nameUom, idBarCodeItem, idItem, toConsume, NEW, DELETE
@@ -122,6 +124,7 @@ FORM manufacturingOrder 'Производственный заказ'
 ;
 
 DESIGN manufacturingOrder {
+    caption = (CONCAT ' ', 'Производственный заказ', '№' + number(o), 'от ' + scheduledDateTime(o));
     OBJECTS {
         NEW header {
             alignment = STRETCH;
@@ -169,13 +172,15 @@ FORM manufacturingOrders 'Производственные заказы'
                            nameItem, unbuild, 
                            toManufacture, nameUom, 
                            descriptionBom, 
-                           nameMaterialsLocation
+                           nameMaterialsLocation,
+                           countConsumedLine, countFinishedLine
     PROPERTIES(o) NEWSESSION NEW, EDIT, DELETE 
     
     LIST ManufacturingOrder OBJECT o
 ;
 
-@defineStatusForm(manufacturingOrder, o);
+@defineDocStatusForm(manufacturingOrder, o);
+@defineDocLocationAccess(manufacturingOrder, o, materials);
 
 NAVIGATOR {
     operations {

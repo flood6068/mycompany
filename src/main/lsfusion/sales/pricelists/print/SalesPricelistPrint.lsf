@@ -1,91 +1,8 @@
 MODULE SalesPricelistPrint;
 
-REQUIRE SalesPricelistValue;
+REQUIRE Utils, SalesPricelistPrintType, ItemImage;
 
 NAMESPACE Sales;
-
-CLASS PrintPricelistType 'Тип прайс-листа';
-
-name 'Наименование' = DATA STRING[50] (PrintPricelistType);
-template 'Шаблон для заголовка' = DATA STRING (PrintPricelistType) CHARWIDTH 50;
-templateCategory 'Шаблон для спецификации' = DATA STRING (PrintPricelistType) CHARWIDTH 50;
-
-company = DATA Company (PrintPricelistType);
-nameCompany 'Компания' (PrintPricelistType t) = name(company(t)); 
-
-set 'Вкл' = DATA BOOLEAN (PrintPricelistType, Category);
-set 'Вкл' = DATA BOOLEAN (PrintPricelistType, PriceType);
-
-FORM printPricelistType 'Тип прайс-листа'
-    OBJECTS t = PrintPricelistType PANEL
-    PROPERTIES(t) name, nameCompany,
-                  template, templateCategory
-    
-    TREE categories cat = Category PARENT parent(cat) 
-    PROPERTIES name(cat) READONLY, set(t, cat) BACKGROUND (GROUP LAST set(t, Category cc) ORDER level(cc, cat))
-    ORDER name(cat)
-    
-    OBJECTS pt = PriceType
-    PROPERTIES name(pt) READONLY, set(t, pt)
-    
-    EDIT PrintPricelistType OBJECT t
-;
-
-FORM printPricelistTypes 'Типы прайс-листа'
-    OBJECTS t = PrintPricelistType
-    PROPERTIES READONLY name(t)
-    PROPERTIES(t) NEWSESSION NEW, EDIT, DELETE
-    
-    LIST PrintPricelistType OBJECT t
-;
-
-DESIGN printPricelistType {
-    OBJECTS {
-        NEW header {
-            NEW general {
-                alignment = STRETCH;
-                type = CONTAINERH;
-                MOVE PROPERTY(name(t));
-                MOVE PROPERTY(nameCompany(t));
-            } 
-            NEW templates {
-                alignment = STRETCH;
-                type = CONTAINERH;
-                MOVE PROPERTY(template(t));
-                MOVE PROPERTY(templateCategory(t));
-            }
-        }
-        NEW details {
-            fill = 1;
-            type = CONTAINERH;
-            MOVE BOX(TREE categories);
-            MOVE BOX(pt);
-        }
-    }
-}
-
-// add to pricelists form
-EXTEND FORM pricelists
-    OBJECTS pp = PrintPricelistType
-    
-    PROPERTIES READONLY name(pp)
-    PROPERTIES(pp) NEWSESSION NEW, EDIT, DELETE
-;
-
-DESIGN pricelists {
-    OBJECTS {
-        fill = 1;
-        type = TABBED;
-        NEW lists {
-            caption = 'Прайс-листы';
-            MOVE BOX(p);
-        }
-        NEW print {
-            caption = 'Печать';
-            MOVE BOX(pp);
-        }
-    }
-}
 
 // print
 addressCompany (PrintPricelistType t) = linesAddress(company(t));
@@ -93,44 +10,47 @@ phoneCompany (PrintPricelistType t) = phone(company(t));
 emailCompany (PrintPricelistType t) = email(company(t));
 websiteCompany (PrintPricelistType t) = website(company(t));
 
-FORM printPricelist 'Текущие цены'
-    OBJECTS dt = DATETIME PANEL
-    
+price = DATA LOCAL NUMERIC[10,2] (PriceType, Item); 
+
+price (PrintPricelistType pt, Item it, INTEGER i) = price(priceType(pt, i), it);
+
+price1 (PrintPricelistType pt, Item it) = price(pt, it, 1);
+price2 (PrintPricelistType pt, Item it) = price(pt, it, 2);
+price3 (PrintPricelistType pt, Item it) = price(pt, it, 3);
+
+FORM printPricelist 'Прайс-лист'
     OBJECTS pt = PrintPricelistType PANEL
-    PROPERTIES(pt) name, nameCompany, phoneCompany, emailCompany, websiteCompany
-    REPORT template(pt)
+    PROPERTIES(pt) name, nameCompany, addressCompany, phoneCompany, emailCompany, websiteCompany
+    REPORT OVERRIDE file(pt), setExtension(RAWFILE(template(pt)), 'path')
 
     OBJECTS t = PriceType
     FILTERS set(pt, t)
 
-    OBJECTS c = Category SUBREPORT templateCategory(pt)
+    OBJECTS c = Category
     PROPERTIES(c) name
-    FILTERS GROUP LAST set(pt, Category pc) ORDER level(c, pc) 
+    FILTERS c IS Category AND pt IS PrintPricelistType
 
     OBJECTS i = Item
-    PROPERTIES id(i), name(i), nameUom(i), price = priceB(t, i, dt) COLUMNS (t) HEADER name(t)
-    FILTERS (GROUP SUM 1 IF priceB(PriceType type, i, dt) AND set(pt, type)), category(i) = c, canBeSold(i) 
+    PROPERTIES id(i), name(i), nameUom(i), price = price(t, i) COLUMNS (t) HEADER name(t), image(i),
+               price1 = price1(pt, i), price2 = price2(pt, i), price3 = price3(pt, i)
+    ORDERS name(i)
+    FILTERS category(i) = c, GROUP SUM 1 IF price(PriceType ppt, i)
 ;
 
-printPriceList 'Сформировать' (PrintPricelistType pt) {
-    PRINT printPricelist OBJECTS dt = currentDateTime(), pt = pt;
+print (PrintPricelistType pt) {
+    CASE EXCLUSIVE
+        WHEN format(pt) = TemplateFormat.pdf THEN
+            PRINT printPricelist OBJECTS pt = pt PDF;
+        WHEN format(pt) = TemplateFormat.docx THEN
+            PRINT printPricelist OBJECTS pt = pt DOCX;
+        WHEN format(pt) = TemplateFormat.xlsx THEN
+            PRINT printPricelist OBJECTS pt = pt XLSX;
+        WHEN format(pt) = TemplateFormat.rtf THEN
+            PRINT printPricelist OBJECTS pt = pt RTF;
+        WHEN format(pt) = TemplateFormat.html THEN
+            PRINT printPricelist OBJECTS pt = pt HTML;
+        WHEN format(pt) = TemplateFormat.noPreview THEN
+            PRINT printPricelist OBJECTS pt = pt NOPREVIEW;
+        ELSE
+            PRINT printPricelist OBJECTS pt = pt;
 }
-
-printPriceListXls 'Сформировать (xls)' (PrintPricelistType pt) {
-    PRINT printPricelist OBJECTS dt = currentDateTime(), pt = pt XLS;
-}
-
-EXTEND FORM pricelists
-    PROPERTIES(pp) printPriceList, printPriceListXls
-;
-
-DESIGN pricelists {
-    print {
-        NEW actions FIRST {
-            type = CONTAINERH;
-            MOVE PROPERTY(printPriceList(pp));
-            MOVE PROPERTY(printPriceListXls(pp));  
-        }
-    }
-}
-

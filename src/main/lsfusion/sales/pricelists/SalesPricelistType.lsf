@@ -1,0 +1,79 @@
+MODULE SalesPricelistType;
+
+REQUIRE SalesSettings, SalesPriceType;
+
+NAMESPACE Sales;
+
+CLASS PricelistType 'Тип прайс-листа';
+name 'Наименование' = DATA ISTRING[50] (PricelistType) NONULL IN id;
+
+id 'Код' = DATA STRING[20] (PricelistType) CHARWIDTH 10;
+priceListType (STRING[20] id) = GROUP AGGR PricelistType t BY id(t);
+
+numerator 'Нумератор' = DATA Numerator (PricelistType);
+nameNumerator 'Нумератор' (PricelistType o) = name(numerator(o));
+
+showCost 'Показывать себестоимость' = DATA BOOLEAN (PricelistType);
+
+in 'Вкл.' = DATA BOOLEAN (PricelistType, PriceType);
+
+showCurrentPrice 'Показывать действующие цены' = DATA BOOLEAN (PricelistType, PriceType);
+showMarkup 'Показывать надбавки' = DATA BOOLEAN (PricelistType, PriceType);
+
+basePriceType = DATA PriceType (PricelistType, PriceType);
+nameBasePriceType 'Считать надбавку от' (PricelistType t, PriceType pt) = name(basePriceType(t, pt));
+
+FORM pricelistType 'Тип прайс-листа'
+    OBJECTS t = PricelistType PANEL
+    PROPERTIES(t) name, id, nameNumerator, showCost
+                  
+    OBJECTS p = PriceType
+    PROPERTIES in(t, p) 
+    PROPERTIES READONLY name(p)
+    PROPERTIES(t, p) showMarkup, showCurrentPrice, nameBasePriceType
+    
+    EDIT PricelistType OBJECT t
+;
+
+DESIGN pricelistType {
+    OBJECTS {
+        NEW header {
+            type = CONTAINERH;
+            MOVE PROPERTY(name(t));
+            MOVE PROPERTY(id(t));
+            MOVE PROPERTY(nameNumerator(t));
+        }
+        NEW params {
+            type = CONTAINERH;
+            MOVE PROPERTY(showCost(t));
+        }
+        MOVE BOX(p) {
+            PROPERTY(showMarkup(t, p)) { valueWidth = 120; }
+            PROPERTY(showCurrentPrice(t, p)) { valueWidth = 120; }
+        }
+    }
+}
+
+FORM pricelistTypes 'Типы прайс-листов'
+    OBJECTS t = PricelistType
+    PROPERTIES(t) READONLY name, id
+    
+    LIST PricelistType OBJECT t
+;
+ 
+EXTEND FORM options
+    OBJECTS pt = PricelistType
+    PROPERTIES(pt) READONLY name, id
+    PROPERTIES(pt) NEWSESSION NEW, EDIT, DELETE
+;
+
+DESIGN options {
+    tabbedPane {
+        MOVE BOX(pt);
+    }
+}
+
+countPricelistTypes 'Кол-во типов' () = GROUP SUM 1 IF PricelistType t IS PricelistType; 
+firstPricelistType = GROUP LAST PricelistType t ORDER DESC t WHERE t IS PricelistType;
+
+defaultPricelistType = firstPricelistType() IF countPricelistTypes() = 1;

@@ -1,11 +1,11 @@
 MODULE MyCompany;
 
-REQUIRE EvalScript, ProcessMonitor,
+REQUIRE EvalScript, ProcessMonitor, Backup,
         MasterDataP,
         Inventory,
-        Invoicing,
+        Invoicing, InvoicingInventory,
         Purchase,
         Sales,
         Retail,  
         Manufacturing,
-        BillReceiptCost;
+        BillReceiptCost, BillReceiptCostService; // initialize after Purchase

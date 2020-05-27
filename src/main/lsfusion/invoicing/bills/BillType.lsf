@@ -1,6 +1,6 @@
 MODULE BillType;
 
-REQUIRE Numerator, InvoicingSettings, MasterDataSettings;
+REQUIRE Numerator, InvoicingSettings;
 
 NAMESPACE Invoicing;
 
@@ -22,6 +22,15 @@ FORM billType 'Тип приобретения'
     EDIT BillType OBJECT o;
 ;
 
+DESIGN billType {
+    OBJECTS {
+        NEW tabbedPane {
+            fill = 1;
+            type = TABBED;
+        }
+    }
+}
+
 FORM billTypes 'Типы приобретения'
     OBJECTS o = BillType
     PROPERTIES(o) READONLY name, id
@@ -42,7 +51,7 @@ DESIGN options {
 }
 
 // default type
-countBillTypes 'Кол-во типов' () = GROUP SUM 1 IF r IS BillType; 
+countBillType 'Кол-во типов' () = GROUP SUM 1 IF r IS BillType; 
 firstBillType = GROUP LAST BillType r ORDER DESC r WHERE r IS BillType;
 
-defaultBillType = firstBillType() IF countBillTypes() = 1;
+defaultBillType = firstBillType() IF countBillType() = 1;

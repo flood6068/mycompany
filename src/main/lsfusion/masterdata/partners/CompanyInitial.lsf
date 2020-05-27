@@ -1,0 +1,16 @@
+MODULE CompanyInitial;
+
+REQUIRE Company;
+
+NAMESPACE MasterData;
+
+loadDefaultData() + {
+    NEW c = Company {
+        id(c) <- 'myc';
+    
+        failedLoadDefaultData() <- TRUE;
+        DIALOG partner OBJECTS p = c DO {
+            failedLoadDefaultData() <- NULL;
+        }
+    }
+}

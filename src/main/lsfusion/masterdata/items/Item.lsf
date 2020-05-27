@@ -1,11 +1,13 @@
 MODULE Item;
 
-REQUIRE MasterDataSettings, Category, Tax, Uom, MetaNumerator;
+REQUIRE Category, Uom, MetaNumerator;
+
+PRIORITY System;
 
 NAMESPACE MasterData;
 
 CLASS ABSTRACT Item 'Номенклатура';
-type 'Тип' (Item i) = objectClassName(i) IF i IS Item CHARWIDTH 6;
+class 'Вид' (Item i) = objectClassName(i) IF i IS Item CHARWIDTH 6;
 
 @defineID(item, 'Номенклатуры', 'НМ');
 
@@ -56,8 +58,8 @@ copy (Item n, Item o) + {
 
 FORM item 'Номенклатура'
     OBJECTS i = Item PANEL
-    PROPERTIES(i) dataName READONLYIF readonly(i), type READONLY, 
-                  name READONLY, id, nameCategory READONLYIF readonly(i), nameUom READONLYIF readonly(i),
+    PROPERTIES(i) dataName READONLYIF readonly(i), class READONLY, 
+                  name READONLY, id, canonicalNameCategory READONLYIF readonly(i), nameUom READONLYIF readonly(i),
                   archived READONLYIF readonly(i), cost
       
     EDIT Item OBJECT i
@@ -70,14 +72,14 @@ DESIGN item {
                 type = CONTAINERH;
                 alignment = STRETCH;
                 MOVE PROPERTY(dataName(i));
-                MOVE PROPERTY(type(i));
+                MOVE PROPERTY(class(i));
             }
             MOVE PROPERTY(name(i)) { alignment = STRETCH; }                   
             NEW pane {
                 type = CONTAINERH;
                 alignment = STRETCH;
                 NEW column1 {
-                    MOVE PROPERTY(nameCategory(i));
+                    MOVE PROPERTY(canonicalNameCategory(i));
                     MOVE PROPERTY(id(i));
                 }        
                 NEW column2 {
@@ -106,11 +108,12 @@ DESIGN item {
 FORM items 'Номенклатура'
     TREE categories c = Category PARENT parent(c)
     PROPERTIES READONLY name(c)
-    ORDER name(c)
+    ORDERS name(c)
 
     OBJECTS i = Item
-    PROPERTIES(i) READONLYIF isReadonly() name, id, nameCategory, nameUom, type READONLY
-    PROPERTIES(i) SHOWIF isReadonly() NEWSESSION EDIT, DELETE 
+    PROPERTIES(i) READONLYIF isReadonly() name, id, nameCategory, nameUom, class READONLY
+    PROPERTIES(i) SHOWIF isReadonly() NEWSESSION EDIT, DELETE
+    ORDERS name(i) 
     FILTERS level(category(i), c)
     FILTERGROUP active
         FILTER 'Активный' active(i) 'F8' DEFAULT 
@@ -127,6 +130,7 @@ DESIGN items {
             type = SPLITH;
             fill = 1;
             NEW options {
+                type = SPLITV;
                 NEW categories {
                     fill = 1;
                     MOVE BOX(TREE categories);

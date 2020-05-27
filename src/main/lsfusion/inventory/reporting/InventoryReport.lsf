@@ -1,6 +1,6 @@
 MODULE InventoryReport;
 
-REQUIRE InvLedger, ResLedger, ItemImage, ItemAttribute;
+REQUIRE InvLedger, ResLedger, ItemImage, ItemAttribute, LocationEmployee;
 
 NAMESPACE Inventory;
 
@@ -13,11 +13,11 @@ FORM inventoryReport 'Текущие остатки'
     
     TREE locations lt = Location PARENT parent(lt)
     PROPERTIES READONLY name(lt)
-    ORDER name(lt)
+    ORDERS name(lt)
     
     TREE categories c = Category PARENT parent(c)
     PROPERTIES READONLY name(c)
-    ORDER name(c)
+    ORDERS name(c)
     
     OBJECTS lp = (l = Location, p = Product)
     PROPERTIES READONLY 'Склад' = canonicalName(l) SHOWIF NOT singleLocation(), 'Товар' = name(p)
@@ -26,14 +26,17 @@ FORM inventoryReport 'Текущие остатки'
     PROPERTIES(l, p) READONLY SHOWIF selectedDateTime() onHandDateTime 
     PROPERTIES(l, p) READONLY dateReceived, dateShipped
     PROPERTIES(p) READONLY image PANEL
+    PROPERTIES(p) EDIT
     FILTERS IF singleLocation() THEN l = lt ELSE isChild(l, lt),
             level(category(p), c),
             IF selectedDateTime() THEN onHandDateTime(l, p) ELSE 
-                (IF singleLocation() THEN onHandRec(l, p) ELSE onHand(l, p))
+                (IF singleLocation() THEN onHandRec(l, p) ELSE onHand(l, p)),
+            accessGranted(l)
                 
     OBJECTS il = InvLedger
-    PROPERTIES(il) READONLY type, dateTime, number, 
-                            namePartner, nameFromLocation, nameToLocation, 
+    PROPERTIES(il) READONLY class, type, dateTime, number, namePartner,
+                            nameFromLocation, onHandFromLocation, 
+                            nameToLocation, onHandToLocation,
                             quantity
     PROPERTIES(il) EDIT
     FILTERGROUP activeInv
@@ -44,7 +47,7 @@ FORM inventoryReport 'Текущие остатки'
             dateTime(il) <= selectedDateTime() OR NOT selectedDateTime()
 
     OBJECTS rl = ResLedger
-    PROPERTIES(rl) READONLY type, dateTime, number, 
+    PROPERTIES(rl) READONLY class, type, dateTime, number, 
                             namePartner, nameLocation, 
                             reserved
     PROPERTIES(rl) EDIT
@@ -54,11 +57,13 @@ FORM inventoryReport 'Текущие остатки'
             dateTime(il) <= selectedDateTime() OR NOT selectedDateTime()
             
     OBJECTS a = ItemAttribute
-    OBJECTS rlp = (ll = Location, rp = Product)
+    OBJECTS rlp = (ll = Location, rp = Product) PIVOT
     PROPERTIES READONLY 'Склад' = canonicalName(ll), 'Товар' = name(rp), value(rp, a) COLUMNS (a) HEADER name(a),
-                    level1(rp), level2(rp), level3(rp), level4(rp), 'Группа полная' = canonicalNameCategory(rp)
-    PROPERTIES(ll, rp) READONLY reserved, available, onHandDateTime, dateReceived, dateShipped
-    FILTERS IF selectedDateTime() THEN onHandDateTime(ll, rp) ELSE onHand(ll, rp)
+                        level1(rp), level2(rp), level3(rp), level4(rp), 'Группа полная' = canonicalNameCategory(rp)
+    PROPERTIES(ll, rp) READONLY dateReceived, dateShipped
+    PROPERTIES READONLY MEASURE reserved(ll, rp), available(ll, rp), onHand 'Остаток' = IF selectedDateTime() THEN onHandDateTime(ll, rp) ELSE onHand(ll, rp)
+    FILTERS IF selectedDateTime() THEN onHandDateTime(ll, rp) ELSE onHand(ll, rp),
+            accessGranted(ll)
 ;
 
 DESIGN inventoryReport {

@@ -1,14 +1,14 @@
 MODULE Receipt;
 
 REQUIRE System, Time,
-        InventorySettings, Location, Partner, Product,
+        InventorySettings, Location, Partner, Product, LocationEmployee,
         ReceiptType, ItemPurchase, PartnerPurchase, BarCode, Doc, ResLedger;
 
 NAMESPACE Inventory;
 
 CLASS Receipt 'Поступление';
 
-@defineStatus(receipt, 'поступления');
+@defineDocStatus(receipt, 'поступления');
 
 immediate 'Незапланированное' = DATA BOOLEAN (Receipt);
 
@@ -22,9 +22,9 @@ scheduledDateTime 'Планируемая дата' = DATA DATETIME (Receipt) NO
 scheduledDateTime(Receipt r) <- currentDateTime() WHEN (r IS Receipt); 
 
 @defineNumberType(receipt);
-receipt (STRING[31] number) = GROUP LAST Receipt r BY number(r);
+receipt (STRING[31] number) = GROUP LAST Receipt r ORDER r BY number(r);
 
-numberDate 'Описание' (Receipt r) = number(r) + ' от ' + scheduledDateTime(r);
+numberDate 'Описание' (Receipt r) = number(r) + ' от ' + scheduledDateTime(r) IN id;
 
 // location
 location 'Место хранения' = DATA Location (Receipt) NONULL INDEXED;
@@ -93,6 +93,7 @@ FORM receipt 'Поступление'
 ;
 
 DESIGN receipt {
+    caption = (CONCAT ' ', 'Поступление', '№' + number(r), 'от ' + scheduledDateTime(r));
     OBJECTS {       
         NEW header {
             NEW headerCenter {
@@ -139,11 +140,12 @@ FORM receipts 'Поступления'
     OBJECTS r = Receipt
     PROPERTIES(r) READONLY nameType, scheduledDateTime, number, 
                            nameVendor, nameLocation,
-                           note
+                           note, countLines
     PROPERTIES(r) NEWSESSION NEW, EDIT, DELETE
 ;
 
-@defineStatusForm(receipt, r);
+@defineDocStatusForm(receipt, r);
+@defineDocLocationAccess(receipt, r);
 
 NAVIGATOR {
     operations {

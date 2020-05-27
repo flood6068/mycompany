@@ -23,6 +23,12 @@ DESIGN bill {
     }
 }
 
+EXTEND FORM bills
+    PROPERTIES(b) READONLY nameLocation
+;
+
+@defineDocLocationAccess(bill, b);
+
 // lines
 @defineDocLineRelation(bill, receipt, 'Приобретения', 'Поступления', b, r);
 
@@ -49,7 +55,7 @@ newReceipt (Bill b) {
     }
 }
 
-createReceipt 'Создать поступление' (Bill b) {
+createReceipt 'Принять' (Bill b) {
     APPLY;
     IF canceled() THEN RETURN;
     
@@ -73,7 +79,9 @@ DESIGN bill {
         MOVE PROPERTY(createReceipt(b)) { fontStyle = 'bold'; }
     }
     relatedDoc {
-        MOVE BOX(r);
+        MOVE BOX(r) {
+            caption = CONCAT ' ', 'Поступления', '(' + countReceipts(b) + ')';
+        }
         REMOVE TOOLBARSYSTEM(r);
     }
 }
@@ -82,7 +90,7 @@ DESIGN bill {
 autoCreateReceipt 'Автоматически создавать поступление' = DATA BOOLEAN (BillType);
 EXTEND FORM billType PROPERTIES autoCreateReceipt(o) SHOWIF receiptType(o);
 
-WHEN SET(ready(Bill b)) AND autoCreateReceipt(type(b)) DO 
+WHEN (SET(ready(Bill b)) OR SET(countProductLines(b))) AND autoCreateReceipt(type(b)) AND countProductLines(b) DO 
     newReceipt(b);
 WHEN SET(canceled(Bill b)) AND in(b, Receipt r) AND countBill(r) = 1 AND autoCreateReceipt(type(b)) DO 
     canceled(r) <- TRUE; 

@@ -1,14 +1,14 @@
 MODULE Shipment;
 
 REQUIRE System, Time,
-        InventorySettings, Location, Partner, Product,
+        InventorySettings, LocationEmployee, Partner, Product,
         ShipmentType, ItemSales, PartnerSales, BarCode, Doc, ResLedger;
 
 NAMESPACE Inventory;
 
 CLASS Shipment 'Отгрузка';
 
-@defineStatus(shipment, 'отгрузки');
+@defineDocStatus(shipment, 'отгрузки');
 
 immediate 'Незапланированная' = DATA BOOLEAN (Shipment);
 
@@ -23,7 +23,7 @@ scheduledDateTime(Shipment s) <- currentDateTime() WHEN SET(s IS Shipment);
 
 @defineNumberType(shipment);
 
-numberDate 'Описание' (Shipment s) = number(s) + ' от ' + scheduledDateTime(s);
+numberDate 'Описание' (Shipment s) = number(s) + ' от ' + scheduledDateTime(s) IN id;
 
 // locations
 location 'Место хранения (откуда)' = DATA Location (Shipment) NONULL INDEXED;
@@ -112,6 +112,7 @@ FORM shipment 'Отгрузка'
 ;
 
 DESIGN shipment {
+    caption = (CONCAT ' ', 'Отгрузка', '№' + number(s), 'от ' + scheduledDateTime(s));
     OBJECTS {       
         NEW header {
             NEW headerCenter {
@@ -159,11 +160,12 @@ FORM shipments 'Отгрузки'
     OBJECTS s = Shipment
     PROPERTIES(s) READONLY nameType, scheduledDateTime, number, 
                            nameCustomer, nameLocation, nameToLocation,
-                           note
+                           note, countLines
     PROPERTIES(s) NEWSESSION NEW, EDIT, DELETE
 ;
 
-@defineStatusForm(shipment, s);
+@defineDocStatusForm(shipment, s);
+@defineDocLocationAccess(shipment, s);
 
 NAVIGATOR {
     operations {

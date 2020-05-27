@@ -1,10 +1,10 @@
 MODULE SalesOrderPrintInitialRu;
 
-REQUIRE MasterDataSettings, SalesOrderPrint, DocTemplate;
+REQUIRE SalesOrderPrint, DocTemplate;
 
 NAMESPACE Sales;
 
-loadInitialData () + {
+loadDefaultData () + {
     NEW tm = OrderTemplate {
         name(tm) <- 'Заказ покупателя';
         template(tm) <- 'SalesOrderRu.jrxml';
@@ -23,6 +23,16 @@ loadInitialData () + {
     NEW tm = OrderTemplate {
         name(tm) <- 'Счет-фактура';
         template(tm) <- 'InvoiceRu.jrxml';
+        in(tm, OrderType t) <- TRUE;
+    }
+    NEW tm = OrderTemplate {
+        name(tm) <- 'Заказ-наряд';
+        template(tm) <- 'SalesWorkOrderRu.jrxml';
+        in(tm, OrderType t) <- TRUE;
+    }
+    NEW tm = OrderTemplate {
+        name(tm) <- 'Акт выполненных работ';
+        template(tm) <- 'SalesCompletionStatementRu.jrxml';
         in(tm, OrderType t) <- TRUE;
     }
 }

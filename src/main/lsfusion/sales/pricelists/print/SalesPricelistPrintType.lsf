@@ -1,0 +1,129 @@
+MODULE SalesPricelistPrintType;
+
+REQUIRE SalesPricelist, DocTemplate;
+
+NAMESPACE Sales;
+
+CLASS PrintPricelistType 'Шаблон прайс-листа';
+
+name 'Наименование' = DATA STRING[50] (PrintPricelistType);
+
+company = DATA Company (PrintPricelistType);
+nameCompany 'Компания' (PrintPricelistType t) = name(company(t)); 
+
+WHEN LOCAL SET(PrintPricelistType t IS PrintPricelistType) AND NOT CHANGED(company(t)) DO company(t) <- defaultCompany();
+
+template 'Шаблон' = DATA STRING (PrintPricelistType) CHARWIDTH 50;
+
+file = DATA FILE (PrintPricelistType);
+hasFile (PrintPricelistType t) = TRUE IF file(t);
+
+hasTemplate (PrintPricelistType t) = template(t) OR hasFile(t);
+
+openFile 'Открыть' (PrintPricelistType t) { open(file(t)); }
+loadFile 'Загрузить' (PrintPricelistType t) { INPUT = file(t) CHANGE; }
+dropFile 'Сбросить' (PrintPricelistType t) { file(t) <- NULL; } 
+
+format = DATA TemplateFormat (PrintPricelistType);
+nameFormat 'Формат' (PrintPricelistType t) = name(format(t));
+
+// category
+set 'Вкл' = DATA BOOLEAN (PrintPricelistType, Category);
+
+countCategory (PrintPricelistType t) = GROUP SUM 1 IF set(t, Category c) MATERIALIZED;
+set 'Вкл' (PrintPricelistType t, Item i) = (GROUP LAST set(t, Category pc) ORDER level(category(i), pc)) OR NOT countCategory(t);
+
+// pricetype
+set 'Вкл' = DATA BOOLEAN (PrintPricelistType, PriceType);
+
+index 'Порядок' (PrintPricelistType t, PriceType pt) = PARTITION SUM 1 IF set(t, pt) ORDER pt BY t MATERIALIZED; 
+priceType (PrintPricelistType t, INTEGER i) = GROUP MAX PriceType pt IF index(t, pt) = i; 
+
+FORM printPricelistType 'Шаблон прайс-листа'
+    OBJECTS t = PrintPricelistType PANEL
+    PROPERTIES(t) name, nameCompany, 
+                  template SHOWIF NOT hasFile(t), loadFile, 
+                  openFile SHOWIF hasFile(t), dropFile SHOWIF hasFile(t), 
+                  nameFormat
+    
+    TREE categories cat = Category PARENT parent(cat) 
+    PROPERTIES name(cat) READONLY, set(t, cat) BACKGROUND (GROUP SUM 1 IF set(t, Category cc) AND level(cc, cat))
+    ORDERS name(cat)
+    
+    OBJECTS pt = PriceType
+    PROPERTIES name(pt) READONLY, set(t, pt), index(t, pt) READONLY
+    
+    EDIT PrintPricelistType OBJECT t
+;
+
+DESIGN printPricelistType {
+    OBJECTS {
+        NEW header {
+            NEW general {
+                alignment = STRETCH;
+                type = CONTAINERH;
+                MOVE PROPERTY(name(t));
+                MOVE PROPERTY(nameCompany(t));
+            }
+            NEW format {
+                alignment = STRETCH;
+                type = CONTAINERH;
+                MOVE PROPERTY(template(t));
+                MOVE PROPERTY(loadFile(t));
+                MOVE PROPERTY(openFile(t));
+                MOVE PROPERTY(dropFile(t));
+                MOVE PROPERTY(nameFormat(t));
+            }
+        }
+        NEW details {
+            fill = 1;
+            type = CONTAINERH;
+            MOVE BOX(TREE categories);
+            MOVE BOX(pt);
+        }
+    }
+}
+
+FORM printPricelistTypes 'Шаблоны прайс-листа'
+    OBJECTS t = PrintPricelistType
+    PROPERTIES READONLY name(t)
+    
+    LIST PrintPricelistType OBJECT t
+;
+
+EXTEND FORM options
+    OBJECTS pp = PrintPricelistType
+    
+    PROPERTIES READONLY name(pp)
+    PROPERTIES(pp) NEWSESSION NEW, EDIT, DELETE
+;
+
+DESIGN options {
+    tabbedPane {
+        MOVE BOX(pp);
+    }
+}
+
+// add to pricelists form
+EXTEND FORM pricelists
+    OBJECTS pp = PrintPricelistType
+
+    PROPERTIES READONLY name(pp)
+;
+
+DESIGN pricelists {
+    OBJECTS {
+        fill = 1;
+        type = TABBED;
+        NEW print {
+            caption = 'Печать';
+            MOVE BOX(pp);
+        }
+        NEW lists {
+            caption = 'Прайс-листы';
+            MOVE BOX(p);
+        }
+    }
+}
+
+countPrintPricelistTypes 'Кол-во шаблонов' () = GROUP SUM 1 IF r IS PrintPricelistType; 

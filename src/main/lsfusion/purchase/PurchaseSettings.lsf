@@ -9,7 +9,7 @@ DESIGN options {
         NEW tabbedPane {
             type = TABBED;
             fill = 1;
-            NEW general {
+            NEW commons {
                 caption = 'Основные';
             }
         }
@@ -17,8 +17,10 @@ DESIGN options {
 } 
 
 NAVIGATOR {
-    NEW FOLDER purchase 'Закупки' WINDOW toolbar{
+    NEW FOLDER purchase 'Закупки' WINDOW toolbar IMAGE 'purchase.png' {
         NEW FOLDER operations 'Операции' {  
+        }
+        NEW FOLDER reporting 'Отчеты' {
         }
         NEW FOLDER settings 'Настройка' {
             NEW options;        

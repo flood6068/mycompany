@@ -15,9 +15,9 @@ FORM debts 'Долги по контрагенту'
     PROPERTIES(p) READONLY name
 
     OBJECTS d = Debt
-    PROPERTIES(d) READONLY type, number, dateTime, dueDateTime, nameCompany, amount, left, debt
+    PROPERTIES(d) READONLY class, type, number, dateTime, dueDateTime, nameCompany, amount, left, debt
     PROPERTIES(d) NEWSESSION EDIT
-    ORDER dateTime(d)
+    ORDERS dateTime(d)
     
     FILTERGROUP pastDue
         FILTER 'Просроченные' dueDateTime(d) < currentDateTime() AND signedLeft(d)

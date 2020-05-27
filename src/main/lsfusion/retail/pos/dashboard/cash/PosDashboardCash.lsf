@@ -22,11 +22,12 @@ depositPaymentType = DATA IncomingPaymentType ();
 nameDepositPaymentType 'Тип внесения денег' = name(depositPaymentType());
 EXTEND FORM options PROPERTIES() nameDepositPaymentType;
 DESIGN options {
-    general {
+    commons {
         MOVE PROPERTY(nameDepositPaymentType());
     }
 }
 
+afterDeposit ABSTRACT LIST (Pos, IncomingPayment); 
 deposit 'Внесение денег' (Pos p) {
     DIALOG inputMoney OBJECTS a INPUT DO {
         NEWSESSION {
@@ -44,6 +45,8 @@ deposit 'Внесение денег' (Pos p) {
                 amount(ip) <- a;
                 
                 APPLY;
+                IF NOT canceled() THEN
+                    afterDeposit(p, ip);
             }
         }
     } 
@@ -53,12 +56,13 @@ withdrawPaymentType = DATA OutgoingPaymentType ();
 nameWithdrawPaymentType 'Тип изъятия денег' = name(withdrawPaymentType());
 EXTEND FORM options PROPERTIES() nameWithdrawPaymentType;
 DESIGN options {
-    general {
+    commons {
         MOVE PROPERTY(nameWithdrawPaymentType());
     }
 }
 
 // withdraw
+afterWithdraw ABSTRACT LIST (Pos, OutgoingPayment);
 withdraw 'Выемка денег' (Pos p) {
     DIALOG inputMoney OBJECTS a INPUT DO {
         NEWSESSION {
@@ -76,6 +80,8 @@ withdraw 'Выемка денег' (Pos p) {
                 amount(op) <- a;
                 
                 APPLY;
+                IF NOT canceled() THEN 
+                    afterWithdraw(p, op);
             }
         }
     } 

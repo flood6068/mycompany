@@ -21,6 +21,11 @@ cashAccountImport 'Импорт касс' () {
     INPUT f = EXCELFILE DO {
         NEWSESSION {
             IMPORT XLS HEADER FROM f TO idPartner = A, note = B, name = C;
+
+            FOR [GROUP SUM 1 BY idPartner(INTEGER i)](num) AND NOT partner[STRING](num) DO {
+                MESSAGE 'Отсутствует контрагент в базе данных с кодом ' + num + '. Импорт отменен';
+                RETURN;
+            } 
             
             FOR imported(INTEGER i)  AND
                 partner(idPartner(i))
@@ -36,12 +41,12 @@ cashAccountImport 'Импорт касс' () {
     }
 }    
 
-EXTEND FORM MasterData.options 
+EXTEND FORM migrationData 
     PROPERTIES cashAccountExport(), cashAccountImport()
 ;
 
-DESIGN MasterData.options {
-    import {
+DESIGN migrationData {
+    commons {
         NEW cashAccount {
             type = CONTAINERH;
             caption = 'Кассы';

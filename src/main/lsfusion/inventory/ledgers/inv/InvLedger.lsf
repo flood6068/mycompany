@@ -5,7 +5,9 @@ REQUIRE InventorySettings, Category, Product, Location, Partner, Time;
 NAMESPACE Inventory;
 
 CLASS ABSTRACT InvLedger 'Регистр изменения остатка';
-type 'Тип' (InvLedger l) = objectClassName(l) IF l IS InvLedger CHARWIDTH 15;
+class 'Вид' (InvLedger l) = objectClassName(l) IF l IS InvLedger CHARWIDTH 15;
+
+type 'Тип' = ABSTRACT ISTRING[100] (InvLedger) MATERIALIZED;
 
 active 'Активный' = ABSTRACT BOOLEAN (InvLedger) MATERIALIZED;
 dateTime 'Время' = ABSTRACT DATETIME (InvLedger) MATERIALIZED;
@@ -57,11 +59,18 @@ prevDateReceived (Location l, Product p) = PREV(dateReceived(l, p));
     
 dateShipped 'Дата последней отгрузки' (Location l, Product p) = 
     GROUP LAST dateTime(InvLedger il) ORDER dateTime(il) WHERE fromLocation(il) = l AND product(il) = p;
+    
+datePrevOperation(Location l, Product p, DATETIME dt) = 
+    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il) 
+    WHERE (fromLocation(il) = l OR toLocation(il) = l) AND product(il) = p AND dateTime(il) < dt AND active(il);
+
+onHandFromLocation 'Остаток после операции (откуда)' (InvLedger inv) = onHand(fromLocation(inv), product(inv), dateTime(inv));
+onHandToLocation 'Остаток после операции (куда)' (InvLedger inv)= onHand(toLocation(inv), product(inv), dateTime(inv));                                               
 
 // constraint
-positiveOnHand 'Только положительное кол-во товаров' = DATA BOOLEAN (Location) CHARWIDTH 15;
+positiveOnHand 'Запрет отрицательных остатков' = DATA BOOLEAN (Location) CHARWIDTH 15;
             
-recPositiveOnHand 'Только положительное кол-во товаров' (Location child) = 
+recPositiveOnHand 'Запрет отрицательных остатков' (Location child) = 
     GROUP LAST positiveOnHand(Location parent) ORDER DESC level(child, parent) 
     WHERE positiveOnHand(parent) MATERIALIZED CHARWIDTH 15;
                                                       

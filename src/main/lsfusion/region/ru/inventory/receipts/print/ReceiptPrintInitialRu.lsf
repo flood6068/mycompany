@@ -4,10 +4,15 @@ REQUIRE ReceiptPrintRu;
 
 NAMESPACE Inventory;
 
-loadInitialData () + {
+loadDefaultData () + {
     NEW tm = ReceiptTemplate {
         name(tm) <- 'Приходный ордер';
         template(tm) <- 'ReceiptRu.jrxml';
+        in(tm, ReceiptType t) <- TRUE;
+    }
+    NEW tm = ReceiptTemplate {
+        name(tm) <- 'Этикетки';
+        template(tm) <- 'Barcode60x40Ru.jrxml';
         in(tm, ReceiptType t) <- TRUE;
     }
 }

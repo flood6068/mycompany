@@ -4,9 +4,8 @@ REQUIRE PurchaseOrder, DocTemplate;
 
 NAMESPACE Purchase;
 
-nameCompany (Order o) = name(company(location(o)));
-addressCompany (Order o) = csvAddress(company(location(o)));
-phoneCompany (Order o) = phone(company(location(o)));
+addressCompany (Order o) = csvAddress(company(o));
+phoneCompany (Order o) = phone(company(o));
 
 phoneVendor (Order o) = phone(vendor(o));
 
@@ -21,9 +20,9 @@ FORM printOrder 'Заказ поставщику'
         
     OBJECTS l = OrderLine
     PROPERTIES(l) nameItem, description, 
-                  quantity, price, subtotal,
-                  percentTax, totalTax, taxes, 
-                  totalAmount
+                  quantity, price, untaxedAmount,
+                  taxPercent, taxAmount, taxes, 
+                  amount
     FILTERS order(l) = o
 ; 
 

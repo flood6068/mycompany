@@ -1,6 +1,6 @@
 MODULE InvoiceType;
 
-REQUIRE Numerator, InvoicingSettings, MasterDataSettings;
+REQUIRE Numerator, InvoicingSettings;
 
 NAMESPACE Invoicing;
 
@@ -21,6 +21,15 @@ FORM invoiceType 'Тип реализации'
      
     EDIT InvoiceType OBJECT o;
 ;
+
+DESIGN invoiceType {
+    OBJECTS {
+        NEW tabbedPane {
+            fill = 1;
+            type = TABBED;
+        }
+    }
+}
 
 FORM invoiceTypes 'Типы реализации'
     OBJECTS o = InvoiceType

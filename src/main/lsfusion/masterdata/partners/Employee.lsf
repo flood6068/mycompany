@@ -1,0 +1,103 @@
+MODULE Employee;
+
+REQUIRE Individual, Authentication, Security;
+
+NAMESPACE MasterData;
+
+CLASS Employee 'Сотрудник' : Individual, CustomUser;
+
+EXTEND CLASS PartnerType {
+    employee 'Сотрудник'
+}
+
+type (Partner p) += WHEN p IS Employee THEN PartnerType.employee;
+
+WHEN CHANGED(address(Employee e)) AND NOT CHANGED(postAddress(e)) DO postAddress(e) <- (address(e));
+WHEN CHANGED(postAddress(Employee e)) AND NOT CHANGED(address(e)) DO address(e) <- (postAddress(e));
+
+CONSTRAINT Employee e IS Employee AND NOT legalEntity(e) IS Company
+    CHECKED BY legalEntity
+    MESSAGE 'Организацией сотрудника может быть только компания';
+
+FORM employee 'Сотрудник'
+    OBJECTS e = Employee PANEL
+    PROPERTIES(e) id, login, sha256Password ON CHANGE changeSHA256Password(e), isLocked, archived, 
+                  nameLegalEntity, lastName, firstName, middleName, email, phone, address, city, state, zip, birthday,
+                  nameMainRole
+    
+    OBJECTS ur=UserRole
+    PROPERTIES(ur) READONLY name, sid
+    PROPERTIES(e,ur) in
+
+    EDIT Employee OBJECT e 
+;
+
+DESIGN employee {
+    OBJECTS {
+        NEW pane {
+            type = SPLITH;
+            fill = 1;
+            NEW header {
+                fill = 1;
+                NEW login {
+                    alignment = STRETCH;
+                    caption = '{authentication.custom.user.login}';
+                    MOVE PROPERTY(id(e));
+                    MOVE PROPERTY(login(e));    
+                    MOVE PROPERTY(sha256Password(e));
+                    MOVE PROPERTY(isLocked(e));
+                    MOVE PROPERTY(archived(e));
+                }
+                NEW info {
+                    alignment = STRETCH;
+                    caption = '{authentication.custom.user.info}';
+                    MOVE PROPERTY(nameLegalEntity(e)) { notNull = TRUE; }  
+                    MOVE PROPERTY(lastName(e));
+                    MOVE PROPERTY(firstName(e));
+                    MOVE PROPERTY(middleName(e));
+                    MOVE PROPERTY(email(e));
+                    MOVE PROPERTY(phone(e));
+                    MOVE PROPERTY(address(e));
+                    MOVE PROPERTY(city(e));
+                    MOVE PROPERTY(state(e));
+                    MOVE PROPERTY(zip(e));
+                    MOVE PROPERTY(birthday(e));
+                }
+            }
+            NEW details {
+                type = TABBED;
+                fill = 3;
+                NEW roles {
+                    caption = '{security.user.roles}';
+                    MOVE PROPERTY(nameMainRole(e));
+                    MOVE BOX(ur);
+                }
+            }
+        }
+    }
+    NEW container BEFORE TOOLBARBOX {
+        type = SPLITH;
+        fill = 1;
+        MOVE BOX(e) {
+            flex = 0.3;
+        };
+        GROUP(,e) {
+            type = COLUMNS;
+            columns = 1;
+        }
+    }
+}
+
+FORM employees 'Сотрудники'
+    OBJECTS e = Employee
+    PROPERTIES(e) READONLY  name, login, namePosition, nameLegalEntity
+    PROPERTIES(e) NEWSESSION NEW, EDIT, DELETE
+
+   LIST Employee OBJECT e
+;
+
+NAVIGATOR {
+    masterData {
+        NEW employees;
+    }
+}

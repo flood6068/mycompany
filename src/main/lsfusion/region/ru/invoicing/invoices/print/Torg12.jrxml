@@ -54,48 +54,48 @@
 	<field name="nameUom(l)" class="java.lang.String"/>
 	<field name="quantity(l)" class="java.math.BigDecimal"/>
 	<field name="price(l)" class="java.math.BigDecimal"/>
-	<field name="subtotal(l)" class="java.math.BigDecimal"/>
-	<field name="percentTax(l)" class="java.math.BigDecimal"/>
-	<field name="totalTax(l)" class="java.math.BigDecimal"/>
+	<field name="untaxedAmount(l)" class="java.math.BigDecimal"/>
+	<field name="taxPercent(l)" class="java.math.BigDecimal"/>
+	<field name="taxAmount(l)" class="java.math.BigDecimal"/>
 	<field name="taxes(l)" class="java.lang.String"/>
-	<field name="totalAmount(l)" class="java.math.BigDecimal"/>
+	<field name="amount(l)" class="java.math.BigDecimal"/>
 	<field name="weight(l)" class="java.math.BigDecimal"/>
 	<field name="legalCodeUom(l)" class="java.lang.String"/>
 	<variable name="npp" class="java.lang.Integer" calculation="Count">
 		<variableExpression><![CDATA[0]]></variableExpression>
 		<initialValueExpression><![CDATA[new Integer(1)]]></initialValueExpression>
 	</variable>
-	<variable name="sumWeight" class="java.lang.Integer" resetType="Page" calculation="Sum">
+	<variable name="sumWeight" class="java.math.BigDecimal" resetType="Page" calculation="Sum">
 		<variableExpression><![CDATA[$F{weight(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumQuan" class="java.lang.Integer" resetType="Page" calculation="Sum">
+	<variable name="sumQuan" class="java.math.BigDecimal" resetType="Page" calculation="Sum">
 		<variableExpression><![CDATA[$F{quantity(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumSubtot" class="java.lang.Integer" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{subtotal(l)}]]></variableExpression>
+	<variable name="sumSubtot" class="java.math.BigDecimal" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[$F{untaxedAmount(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumTax" class="java.lang.Integer" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{totalTax(l)}]]></variableExpression>
+	<variable name="sumTax" class="java.math.BigDecimal" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[$F{taxAmount(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumTotal" class="java.lang.Integer" resetType="Page" calculation="Sum">
-		<variableExpression><![CDATA[$F{totalAmount(l)}]]></variableExpression>
+	<variable name="sumTotal" class="java.math.BigDecimal" resetType="Page" calculation="Sum">
+		<variableExpression><![CDATA[$F{amount(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumWeightTot" class="java.lang.Integer" calculation="Sum">
+	<variable name="sumWeightTot" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[$F{weight(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumQuanTot" class="java.lang.Integer" calculation="Sum">
+	<variable name="sumQuanTot" class="java.math.BigDecimal" calculation="Sum">
 		<variableExpression><![CDATA[$F{quantity(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumSubtotTot" class="java.lang.Integer" calculation="Sum">
-		<variableExpression><![CDATA[$F{subtotal(l)}]]></variableExpression>
+	<variable name="sumSubtotTot" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{untaxedAmount(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumTaxTot" class="java.lang.Integer" calculation="Sum">
-		<variableExpression><![CDATA[$F{totalTax(l)}]]></variableExpression>
+	<variable name="sumTaxTot" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{taxAmount(l)}]]></variableExpression>
 	</variable>
-	<variable name="sumTotalTot" class="java.lang.Integer" calculation="Sum">
-		<variableExpression><![CDATA[$F{totalAmount(l)}]]></variableExpression>
+	<variable name="sumTotalTot" class="java.math.BigDecimal" calculation="Sum">
+		<variableExpression><![CDATA[$F{amount(l)}]]></variableExpression>
 	</variable>
-	<variable name="totalPages" class="java.lang.Integer" resetType="None" incrementType="Report">
+	<variable name="totalPages" class="java.math.BigDecimal" resetType="None" incrementType="Report">
 		<variableExpression><![CDATA[$V{PAGE_NUMBER}]]></variableExpression>
 	</variable>
 	<title>
@@ -398,7 +398,7 @@
 					<bottomPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
 					<rightPen lineWidth="1.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
-				<textFieldExpression><![CDATA[$F{dateTime(o)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[lsfusion.base.BaseUtils.dateToString("dd.MM.yyyy",$F{dateTime(o)})]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="314" y="243" width="96" height="12" uuid="c9cbcede-0ab6-4ad7-8872-16742104c38f"/>
@@ -980,22 +980,22 @@
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="559" y="0" width="64" height="18" uuid="263c28e7-e2a2-49f0-9b30-bf7b968a29b5"/>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{subtotal(l)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{untaxedAmount(l)}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="623" y="0" width="45" height="18" uuid="3616594f-598b-4d2a-bac0-3accee7992cd"/>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{percentTax(l)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{taxPercent(l)}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="668" y="0" width="70" height="18" uuid="008561dd-c8be-49d8-adc1-7d8d50dd3159"/>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{totalTax(l)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{taxAmount(l)}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="738" y="0" width="64" height="18" uuid="cb770d12-4fd8-45b6-98ff-81616aeec1ad"/>
 				<textElement textAlignment="Right"/>
-				<textFieldExpression><![CDATA[$F{totalAmount(l)}]]></textFieldExpression>
+				<textFieldExpression><![CDATA[$F{amount(l)}]]></textFieldExpression>
 			</textField>
 			<textField isStretchWithOverflow="true" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" positionType="Float" stretchType="RelativeToBandHeight" x="410" y="0" width="47" height="18" uuid="836a4cec-15e2-4de5-988a-63c916c3761a"/>

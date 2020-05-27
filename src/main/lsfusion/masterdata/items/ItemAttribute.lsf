@@ -18,7 +18,7 @@ name 'Название' = DATA ISTRING[50] (ItemAttribute) IN id NONULL;
 set 'Вкл.' = DATA BOOLEAN (ItemAttribute, Category);
 
 // с учетом групп
-valid (ItemAttribute a, Category c) = GROUP LAST set(a, Category cc) ORDER level(c, cc); 
+valid (ItemAttribute a, Category c) = GROUP LAST set(a, Category cc) ORDER DESC level(c, cc); 
 
 // список возможных значений для атрибута
 CLASS ItemAttributeValue 'Значение';
@@ -27,6 +27,7 @@ itemAttribute 'Атрибут' = DATA ItemAttribute (ItemAttributeValue) NONULL 
 nameAttribute 'Атрибут' (ItemAttributeValue v) = name(itemAttribute(v));
 
 value 'Значение' = DATA STRING (ItemAttributeValue) NONULL IN id;
+value (ItemAttribute a, STRING v) = GROUP AGGR ItemAttributeValue av BY itemAttribute(av), value(av);
 
 // форма по вводу значений
 FORM value 'Значение'
@@ -45,7 +46,7 @@ newValue 'Значение' (ItemAttribute a) {
 
 // задание доступных категорий для конкретных значений
 set 'Вкл.' = DATA BOOLEAN (ItemAttributeValue, Category);
-valid (ItemAttributeValue v, Category c) = GROUP LAST set(v, Category cc) ORDER level(c, cc); 
+valid (ItemAttributeValue v, Category c) = GROUP LAST set(v, Category cc) ORDER DESC level(c, cc); 
 
 countCategory 'Кол-во заданных категорий' (ItemAttributeValue v) = GROUP SUM 1 IF set(v, Category c) MATERIALIZED;
 
@@ -54,8 +55,7 @@ CONSTRAINT set(ItemAttributeValue v, Category c) AND NOT valid(itemAttribute(v),
 
 // диалог выбора значений по атрибуту
 FORM values 'Значения'
-    OBJECTS a = ItemAttribute PANEL
-    OBJECTS c = Category PANEL 
+    OBJECTS a = ItemAttribute PANEL, c = Category PANEL 
 
     OBJECTS v = ItemAttributeValue
     PROPERTIES READONLY value(v)
@@ -63,6 +63,17 @@ FORM values 'Значения'
     PROPERTIES(v) NEWSESSION EDIT, DELETE
     FILTERS itemAttribute(v) = a,
             valid(v, c) OR NOT countCategory(v)
+;
+
+FORM childValues 'Значения'
+    OBJECTS a = ItemAttribute PANEL, c = Category PANEL 
+
+    OBJECTS v = ItemAttributeValue
+    PROPERTIES READONLY value(v)
+    PROPERTIES newValue(a) DRAW v TOOLBAR 
+    PROPERTIES(v) NEWSESSION EDIT, DELETE
+    FILTERS itemAttribute(v) = a,
+            valid(v, c) OR (GROUP SUM 1 IF set(v, Category cc) AND level(cc, c)) OR NOT countCategory(v)
 ;
 
 // формы ввода атрибутов
@@ -79,17 +90,17 @@ FORM attribute 'Атрибут'
     PROPERTIES(a) name, id, nonull
     
     TREE categories c = Category PARENT parent(c) 
-    PROPERTIES name(c) READONLY, set(a, c) BACKGROUND (GROUP LAST set(a, Category cc) ORDER level(cc, c))
-    ORDER name(c)
+    PROPERTIES name(c) READONLY, set(a, c) BACKGROUND (GROUP SUM 1 IF set(a, Category cc) AND level(cc, c))
+    ORDERS name(c)
            
     OBJECTS v = ItemAttributeValue
     PROPERTIES(v) value, NEW, DELETE
     FILTERS itemAttribute(v) = a
     
     TREE cat cc = Category PARENT parent(cc)
-    PROPERTIES name(cc) READONLY, set(v, cc) BACKGROUND (GROUP LAST set(v, Category ccc) ORDER level(ccc, cc))
-    FILTERS (GROUP LAST set(a, Category pcc) ORDER level(cc, pcc)) OR (GROUP LAST set(a, Category ccc) ORDER level(ccc, cc)) 
-    ORDER name(cc)
+    PROPERTIES name(cc) READONLY, set(v, cc) BACKGROUND (GROUP SUM 1 IF set(v, Category ccc) AND level(ccc, cc))
+    FILTERS (GROUP LAST set(a, Category pcc) ORDER level(cc, pcc)) OR (GROUP SUM 1 IF set(a, Category ccc) AND level(ccc, cc)) 
+    ORDERS name(cc)
     
     EDIT ItemAttribute OBJECT a
 ;
@@ -159,8 +170,9 @@ EXTEND FORM item
     OBJECTS a = ItemAttribute
     PROPERTIES name(a) READONLY, 
                value(i, a) ON CHANGE { DIALOG values OBJECTS a = a, c = category(i), v = attribute(i, a) CHANGE; } 
-                           READONLYIF readonly(i, a) BACKGROUND RGB(223,223,223) IF readonly(i, a)
-                           BACKGROUND RGB(245, 184,184) IF NOT value(i, a) AND nonull(a) AND valid(a, category(i))
+                           READONLYIF readonly(i, a) BACKGROUND
+                                IF readonly(i, a) THEN RGB(223,223,223) ELSE
+                                                      (RGB(245,184,184) IF NOT value(i, a) AND nonull(a))
     FILTERS valid(a, category(i))
 ;
 
@@ -200,12 +212,11 @@ attributeFilter = DATA LOCAL ItemAttributeValue (ItemAttribute);
 value 'Значение' (ItemAttribute a) = value(attributeFilter(a));
 
 CONSTRAINT attributeFilter(ItemAttribute a) AND NOT itemAttribute(attributeFilter(a)) = a
-    CHECKED BY attributeFilter
-    MESSAGE 'Значение должно принадлежать атрибуту';
+    CHECKED BY attributeFilter MESSAGE '';
 
 EXTEND FORM items
     OBJECTS ia = ItemAttribute BEFORE i
-    PROPERTIES name(ia) READONLY, value(ia)
+    PROPERTIES name(ia) READONLY, value(ia) ON CHANGE { DIALOG childValues OBJECTS a = ia, c = c, v = attributeFilter(ia) CHANGE; }
     FILTERS attributeFilter(ia) = attribute(i, ia) OR NOT attributeFilter(ia)
     FILTERS GROUP SUM 1 IF set(ia, Category cc) AND (level(cc, c) OR level(c, cc)) 
 ;

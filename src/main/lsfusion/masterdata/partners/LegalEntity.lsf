@@ -6,7 +6,7 @@ NAMESPACE MasterData;
 
 CLASS LegalEntity 'Организация';
 
-name 'Название' = DATA ISTRING[30] (LegalEntity);
+name 'Название' = DATA ISTRING[50] (LegalEntity);
 website 'Веб сайт' = DATA ISTRING[30](LegalEntity);
 
 // Наследуем организацию от контрагента
@@ -46,4 +46,10 @@ EXTEND FORM partners
     PROPERTIES newLegalEntity() DRAW p TOOLBAR
     
     LIST LegalEntity OBJECT p
+;
+EXTEND FORM dialogPartners
+    FILTERGROUP type
+        FILTER 'Организации' p IS LegalEntity
+
+    PROPERTIES newLegalEntity() DRAW p TOOLBAR
 ;
