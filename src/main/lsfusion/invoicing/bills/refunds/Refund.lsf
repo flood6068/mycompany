@@ -36,6 +36,8 @@ EXTEND FORM invoice
 ;
 
 // add
+fill ABSTRACT (InvoiceLine, BillLine);
+fill ABSTRACT (Invoice, Bill);
 addRefund 'Вернуть' (Bill b) {
     APPLY; 
     IF canceled() THEN RETURN;
@@ -61,7 +63,12 @@ addRefund 'Вернуть' (Bill b) {
                 item(bl) <- item(l);
 
                 quantity(bl) <- quantity(l);
+                
+                fill(bl, l);
             }
+            
+            fill(i, b);
+            
             SHOW invoice OBJECTS i = i DOCKED;
         }
         

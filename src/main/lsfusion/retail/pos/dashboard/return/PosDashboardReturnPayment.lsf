@@ -24,19 +24,24 @@ DESIGN posPaymentReturn {
         NEW top {
             alignment = STRETCH;
             MOVE PROPERTY(nameVendor(b)) { fontSize = 24; alignment = STRETCH; changeKey = 'F5'; }
-            MOVE PROPERTY(amount(b)) { fontSize = 24; alignment = STRETCH; }
         }
-        NEW center {
+        NEW pane {
+            type = CONTAINERH;
             fill = 1;
-            MOVE BOX(pm) {
-                GRID(pm) {
-                    defaultComponent = TRUE;
-                    PROPERTY(name(pm)) { fontSize = 24; focusable = FALSE; }
-                    PROPERTY(invoicePaid(b, pm)) { fontSize = 24; }
-                    PROPERTY(amount(pm)) { fontSize = 24; }
+            NEW center {
+                fill = 1;
+                MOVE PROPERTY(amount(b)) { fontSize = 24; alignment = STRETCH; }
+                MOVE BOX(pm) {
+                    GRID(pm) {
+                        defaultComponent = TRUE;
+                        PROPERTY(name(pm)) { fontSize = 24; focusable = FALSE; }
+                        PROPERTY(invoicePaid(b, pm)) { fontSize = 24; }
+                        PROPERTY(amount(pm)) { fontSize = 24; }
+                    }
+                    REMOVE TOOLBARBOX(pm);
                 }
-                REMOVE TOOLBARBOX(pm);
             }
+            NEW right { alignment = STRETCH; }
         }
     }
     
@@ -51,6 +56,8 @@ DESIGN posPaymentReturn {
 EXTEND FORM posPaymentReturn
     EVENTS ON INIT { ACTIVATE PROPERTY posPaymentReturn.amount(pm); }
 ;
+
+@defineKeyboardDecimal(amount, posPaymentReturn, PaymentMethod, pm, right, 64);
 
 posPayment 'Оплата' (Session s, Bill b) {
     amount(PaymentMethod pm) <- NULL;

@@ -10,7 +10,7 @@ item 'Номенклатура' = DATA Item (BarCode) NONULL DELETE;
 idItem 'Код номенклатуры' (BarCode b) = id(item(b));
 nameItem 'Номенклатура' (BarCode b) = name(item(b));
 
-id 'Штрихкод' = DATA STRING[20] (BarCode);
+id 'Штрихкод' = DATA STRING (BarCode);
 barCode (STRING[50] id) = GROUP AGGR BarCode b BY id(b);
 itemBarCode (STRING[50] id) = item(barCode(id));
 
@@ -32,7 +32,7 @@ changeDefault (BarCode b) {
 }
 
 setBarCode(Item i) {
-    INPUT id = STRING[20] DO {
+    INPUT id = STRING DO {
         IF NOT barCode(i) THEN NEW b = BarCode {
             item(b) <- i;
         }
@@ -65,19 +65,26 @@ EXTEND FORM items
     PROPERTIES(i) READONLYIF isReadonly() idBarCode AFTER name(i)
 ;
 
-barCode 'Штрихкод' = DATA LOCAL STRING[20] () CHANGEKEY 'F4';
+consumedBarcode = DATA LOCAL BOOLEAN ();
+barCode 'Штрихкод' = DATA LOCAL STRING () CHANGEKEY 'F4';
 
-META defineBarCodeSearch(doc, let, itm, quantity)
-    scanBarCode (###doc d) {
-        INPUT id = STRING[20] DO {
-            IF itemBarCode(id) THEN
+META defineBarCodeSearch(doc, let, line, itm, quantity)
+    processBarCode ABSTRACT (###doc, ###doc##Line, STRING);
+    scanBarCode (###doc d, ###doc##Line l) {
+        INPUT id = STRING DO {
+            IF itemBarCode(id) THEN {
                 set###quantity(d, itemBarCode(id), quantity(d, itemBarCode(id)) (+) 1);
-            ELSE 
-                MESSAGE 'Штрихкод не найден';
+                SEEK ##doc.line = last###doc##Line(d, itemBarCode(id));
+            } ELSE {
+                consumedBarcode() <- NULL;
+                processBarCode(d, l, id);
+                IF NOT consumedBarcode() THEN
+                    MESSAGE 'Штрихкод не найден';
+            }
         }
     }
     
     EXTEND FORM ##doc
-        PROPERTIES() barCode DRAW l TOOLBAR ON CHANGE scanBarCode(##let)
+        PROPERTIES() barCode DRAW l TOOLBAR ON CHANGE scanBarCode(##let, l)
     ;
 END

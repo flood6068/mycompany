@@ -210,7 +210,7 @@ DESIGN invoice {
 
 @defineDocHistory(invoice, i, item, quantity);
 @defineDocSearch(invoice, item, quantity, 'Кол-во', i, canBeSold);
-@defineBarCodeSearch(invoice, i, item, quantity);
+@defineBarCodeSearch(invoice, i, l, item, quantity);
 
 @defineDocDiscountForm(invoice);
 
@@ -227,6 +227,7 @@ FORM invoices 'Реализации'
 @defineTaxForm(invoice, i);
 @defineDocStatusForm(invoice, i);
 @defineDocLinesCount(invoice, i);
+@defineDateFilterForm(invoices, i);
 
 NAVIGATOR {
     operations {

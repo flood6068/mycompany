@@ -2,7 +2,8 @@ MODULE PurchaseOrder;
 
 REQUIRE Time, MetaNumerator, Employee, Company,
         MetaTax, TaxItem, BarCode, PurchaseOrderType,
-        PurchaseSettings, PartnerPurchase, ItemSales,
+        PurchaseSettings, PartnerPurchase, 
+        ItemSales, ItemCost,
         PaymentTermsPurchase, Doc, DateUtils,
         DebtPartner, LocationEmployee;  
 
@@ -81,9 +82,8 @@ CONSTRAINT item(OrderLine l) AND NOT canBePurchased(item(l))
 
 description 'Описание' = DATA ISTRING (OrderLine);
 
-uom = DATA Uom (OrderLine);
+uom (OrderLine l) = uom(item(l));
 nameUom 'Ед. изм.' (OrderLine l) = name(uom(l));
-WHEN LOCAL CHANGED(item(OrderLine l)) DO uom(l) <- uom(item(l));
 
 quantity 'Количество' = DATA NUMERIC[16,3] (OrderLine);
 
@@ -92,7 +92,7 @@ price 'Цена' = DATA NUMERIC[10,2] (OrderLine);
 defaultPrice = ABSTRACT CASE NUMERIC[10,2] (OrderLine);
 WHEN LOCAL SETCHANGED(item(OrderLine l)) AND NOT CHANGED(price(l)) DO price(l) <- defaultPrice(l);
 
-defaultPrice (OrderLine l) += WHEN cost(item(l)) THEN cost(item(l)); 
+defaultPrice (OrderLine l) += WHEN cost(item(l), DATE(dateTime(order(l)))) THEN cost(item(l)); 
 
 @defineTaxCalc(order, o, purchase);
 taxIncluded (OrderLine l) += taxIncluded(type(order(l)));
@@ -204,7 +204,7 @@ FORM orders 'Заказы поставщикам'
 @defineDocStatusForm(order, o);
 @defineDocLinesCount(order, o);
 @defineDocLocationAccess(order, o);
-
+@defineDateFilterForm(orders, o);
 
 NAVIGATOR {
     operations {
@@ -225,7 +225,6 @@ copyOrder 'Копировать' (Order o)  {
                 order(nl) <- no;
                 item(nl) <- item(l);
                 description(nl) <- description(l);
-                uom(nl) <- uom(l); 
                 
                 quantity(nl) <- quantity(l);
                 

@@ -2,7 +2,7 @@ MODULE Bill;
 
 REQUIRE InvoicingSettings, TaxItem, BankAccount, 
         MetaTax, PaymentTermsPurchase, DateUtils, 
-        ItemPurchase, PartnerPurchase, Company,
+        ItemPurchase, ItemCost, PartnerPurchase, Company,
         BarCode, MetaNumerator, Doc, LocationEmployee,
         BillType, Product, ServiceP;
 
@@ -91,9 +91,8 @@ CONSTRAINT item(BillLine l) AND NOT canBePurchased(item(l))
             CHECKED BY item 
             MESSAGE 'Номенклатура не предназначена для закупки';
 
-uom = DATA Uom (BillLine);
+uom (BillLine l) = uom(item(l));
 nameUom 'Ед. изм.' (BillLine l) = name(uom(l));
-WHEN LOCAL CHANGED(item(BillLine l)) DO uom(l) <- uom(item(l)); 
 
 description 'Описание' = DATA STRING (BillLine); 
 
@@ -103,7 +102,7 @@ price 'Цена' = DATA NUMERIC[10,2] (BillLine) NONULL;
 defaultPrice = ABSTRACT CASE NUMERIC[10,2] (BillLine);
 WHEN LOCAL SETCHANGED(item(BillLine l)) AND NOT CHANGED(price(l)) DO price(l) <- defaultPrice(l);
 
-defaultPrice (BillLine l) += WHEN cost(item(l)) THEN cost(item(l)); 
+defaultPrice (BillLine l) += WHEN cost(item(l), DATE(dateTime(bill(l)))) THEN cost(item(l)); 
 
 // taxes
 @defineTaxCalc(bill, b, purchase);
@@ -207,7 +206,7 @@ DESIGN bill {
 
 @defineDocHistory(bill, b, item, quantity);
 @defineDocSearch(bill, item, quantity, 'Кол-во', b, canBePurchased);
-@defineBarCodeSearch(bill, b, item, quantity);
+@defineBarCodeSearch(bill, b, l, item, quantity);
 
 FORM bills 'Приобретения'
     OBJECTS b = Bill
@@ -223,6 +222,7 @@ FORM bills 'Приобретения'
 @defineTaxForm(bill, b);
 @defineDocStatusForm(bill, b);
 @defineDocLinesCount(bill, b);
+@defineDateFilterForm(bills, b);
 
 NAVIGATOR {
     operations {
