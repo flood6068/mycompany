@@ -104,10 +104,15 @@ WHEN LOCAL CHANGED (item(OrderLine ol)) DO {
 // Line properties
 nameStatus 'Статус' (OrderLine l) = nameStatus(order(l)); 
 type (OrderLine l) = type(order(l)); 
+
 dateTime 'Создан' (OrderLine l) = dateTime(order(l));
 number 'Номер' (OrderLine l) = number(order(l));
 numberDate 'Описание' (OrderLine l) = numberDate(order(l));
-nameLocation 'Место хранения' (OrderLine l) = nameLocation(order(l));
+
+location 'Место хранения' (OrderLine l) = location(order(l));
+nameLocation 'Место хранения' (OrderLine l) = location(order(l));
+
+vendor (OrderLine l) = vendor(order(l));
 nameVendor 'Поставщик' (OrderLine l) = nameVendor(order(l));
 
 edit (OrderLine l) + { edit(order(l)); } 
@@ -152,7 +157,10 @@ DESIGN order {
         NEW details {
             fill = 7;
             type = TABBED;
-            MOVE BOX(l);
+            NEW lines {
+                caption = 'Строки';
+                MOVE BOX(l);
+            }
             NEW otherInformation {
                 caption = 'Прочая информация';
                 type = COLUMNS;
@@ -212,7 +220,7 @@ NAVIGATOR {
     }
 }
 
-copyOrder 'Копировать' (Order o)  { 
+copy 'Копировать' (Order o)  { 
     NEWSESSION {
         NEW no = Order {
             type(no) <- type(o);
@@ -235,10 +243,10 @@ copyOrder 'Копировать' (Order o)  {
     }
 }
 
-EXTEND FORM order PROPERTIES copyOrder(o);
+EXTEND FORM order PROPERTIES copy(o);
 
 DESIGN order {
     secondaryActions {
-        MOVE PROPERTY(copyOrder(o));
+        MOVE PROPERTY(copy(o));
     }
 }

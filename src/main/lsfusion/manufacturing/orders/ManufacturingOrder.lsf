@@ -1,7 +1,8 @@
 MODULE ManufacturingOrder;
 
-REQUIRE ManufacturingOrderType, ManufacturingSettings, Numerator, BomNested,
-        Individual, SalesOrder, MetaNumerator, Input;
+REQUIRE Doc, MetaNumerator, Input, DateUtils, 
+        BomNested, LocationEmployee,
+        ManufacturingOrderType, ManufacturingSettings;
 
 NAMESPACE Manufacturing;
 
@@ -18,7 +19,7 @@ scheduledDateTime 'Дата начала' = DATA DATETIME (ManufacturingOrder);
 scheduledDateTime(ManufacturingOrder o) <- currentDateTime() WHEN SET(o IS ManufacturingOrder);
 @defineDateTimeAggregation(ManufacturingOrder, scheduled, ' начала');
 
-@defineNumber(manufacturingOrder, 'Производственные заказы', 'ПЗ');
+@defineNumber(manufacturingOrder, 'Производственные заказы', 'ПРЗ');
 
 numberDate 'Описание' (ManufacturingOrder o) = number(o) + ' от ' + scheduledDateTime(o) IN id;
 
@@ -100,7 +101,12 @@ toProduce 'Произвести' (ManufacturingOrder o) = GROUP SUM toProduce(Fi
 toManufacture 'Произвести' (ManufacturingOrder o) = IF unbuild(o) THEN toConsume(o) ELSE toProduce(o) MATERIALIZED;
 
 // line properties
+nameType 'Тип' (ConsumedLine l) = nameType(manufacturingOrder(l));
 scheduledDateTime 'Дата начала' (ConsumedLine l) = scheduledDateTime(manufacturingOrder(l));
+number 'Номер' (ConsumedLine l) = number(manufacturingOrder(l));
+descriptionBom 'Спецификация' (ConsumedLine l) = descriptionBom(manufacturingOrder(l));
+
+edit (ConsumedLine l) + { edit(manufacturingOrder(l)); } 
 
 FORM manufacturingOrder 'Производственный заказ'
     OBJECTS o = ManufacturingOrder PANEL 
@@ -169,22 +175,27 @@ DESIGN manufacturingOrder {
     }
 }
 
+background (ManufacturingOrder o) = ABSTRACT CASE COLOR (ManufacturingOrder);
+
 FORM manufacturingOrders 'Производственные заказы'
     OBJECTS o = ManufacturingOrder
-    PROPERTIES(o) READONLY nameType, scheduledDateTime, number, nameCompany, 
-                           nameItem, unbuild, 
-                           toManufacture, nameUom, 
+    PROPERTIES(o) READONLYIF isReadonly() BACKGROUND background(o)
+                           nameType, scheduledDateTime, number, nameCompany, 
+                           nameItem, unbuild READONLY, 
+                           toManufacture READONLY, nameUom READONLY, 
                            descriptionBom, 
                            nameMaterialsLocation,
-                           countConsumedLine, countFinishedLine
+                           countConsumedLine READONLY, countFinishedLine READONLY
     PROPERTIES(o) NEWSESSION NEW, EDIT, DELETE 
     
     LIST ManufacturingOrder OBJECT o
 ;
 
+@extendFormEditable(manufacturingOrders);
+
+@defineDocObjectsForm(manufacturingOrders, o, 'Заказы');
 @defineDocStatusForm(manufacturingOrder, o);
 @defineDocLocationAccess(manufacturingOrder, o, materials);
-@defineDateFilterForm(manufacturingOrders, o, scheduled);
 
 NAVIGATOR {
     operations {
@@ -194,31 +205,37 @@ NAVIGATOR {
 
 // copy
 extraCopy ABSTRACT (ManufacturingOrder, ManufacturingOrder);
-copy 'Копировать' (ManufacturingOrder m) {
-    NEWSESSION {
-        NEW o = ManufacturingOrder {
-            item(o) <- item(m);
-            bom(o) <- bom(m);
-            company(o) <- company(m);
-            materialsLocation(o) <- materialsLocation(m);
-            
-            FOR manufacturingOrder(ConsumedLine ml) = m NEW ol = ConsumedLine DO {
-                manufacturingOrder(ol) <- o;
-                item(ol) <- item(ml);
-                toConsume(ol) <- toConsume(ml);
-            }
 
-            FOR manufacturingOrder(FinishedLine ml) = m NEW ol = FinishedLine DO {
-                manufacturingOrder(ol) <- o;
-                item(ol) <- item(ml);
-                uom(ol) <- uom(ml);
-                toProduce(ol) <- toProduce(ml);
-                costRatio(ol) <- costRatio(ml);
-            }
-            
-            extraCopy(o, m);
-            
-            SHOW manufacturingOrder OBJECTS o = o DOCKED;
+clone(ManufacturingOrder to, ManufacturingOrder from) {
+    type(to) <- type(from);
+
+    item(to) <- item(from);
+    bom(to) <- bom(from);
+    company(to) <- company(from);
+    materialsLocation(to) <- materialsLocation(from);
+    
+    FOR manufacturingOrder(ConsumedLine ml) = from NEW ol = ConsumedLine DO {
+        manufacturingOrder(ol) <- to;
+        item(ol) <- item(ml);
+        toConsume(ol) <- toConsume(ml);
+    }
+
+    FOR manufacturingOrder(FinishedLine ml) = from NEW ol = FinishedLine DO {
+        manufacturingOrder(ol) <- to;
+        item(ol) <- item(ml);
+        uom(ol) <- uom(ml);
+        toProduce(ol) <- toProduce(ml);
+        costRatio(ol) <- costRatio(ml);
+    }
+    
+    extraCopy(to, from);
+}
+
+copy 'Копировать' (ManufacturingOrder from) {
+    NEWSESSION {
+        NEW to = ManufacturingOrder {
+            clone(to, from);
+            SHOW manufacturingOrder OBJECTS o = to DOCKED;
         }
     }
 }

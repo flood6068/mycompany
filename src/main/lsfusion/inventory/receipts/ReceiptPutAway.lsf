@@ -100,11 +100,12 @@ EXTEND FORM receipt
 ;
 
 DESIGN receipt {
-    lines {
-        type = SPLITH;
-        MOVE BOX(p) {
-            fill = 0.5;
+    linesTab {
+        NEW receiptPutAway {
+            caption = 'Размещение';
             showIf = toPutAway(r);
+            MOVE GRID(p);
+            MOVE TOOLBARBOX(p);
         }
     }
 }

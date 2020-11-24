@@ -82,7 +82,7 @@ service 'Распределять' (Bill b, BillLine bsl) = GROUP MAX serviceLin
 checkBill (Bill b, BillLine bsl) {
     LOCAL checked = BOOLEAN ();
     checked() <- NOT service(b,bsl);
-    FOR bill(BillLine bl) == b DO
+    FOR bill(BillLine bl) = b DO
         serviceLine(bl, bsl) <- checked();
 }
 
@@ -97,7 +97,7 @@ EXTEND FORM bill
     PROPERTIES(bc) READONLY nameType, dateTime, nameStatus, number, nameVendor, nameCompany, amount
     PROPERTIES service(bc, bsl) ON CHANGE checkBill(bc, bsl)
     PROPERTIES allocate(bsl) TOOLBAR DRAW bc
-    PROPERTIES(bc) EDIT
+    PROPERTIES(bc) NEWSESSION EDIT
     
     OBJECTS bl = BillLine
     PROPERTIES(bl) READONLY numberDate SHOWIF (GROUP SUM 1 IF service(Bill bb, bsl)) > 1 

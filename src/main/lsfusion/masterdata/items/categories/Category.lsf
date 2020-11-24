@@ -6,7 +6,7 @@ NAMESPACE MasterData;
 
 CLASS Category 'Категория';
 
-@defineID(category, 'Категории', 'КТ');
+@defineID(category, 'Категории', 'КТ', 4);
 
 name 'Наименование' = DATA ISTRING[50] (Category) IN id NONULL;
 
@@ -19,8 +19,8 @@ CONSTRAINT DROPPED(Category c IS Category) AND PREV(parent(Category child) = c)
         MESSAGE 'Запрещено удалять категории, на которые ссылаются другие категории';
 
 level 'Уровень' (Category child, Category parent) =
-   RECURSION 1l IF child IS Category AND parent == child
-        STEP 2l IF parent == parent($parent) MATERIALIZED;
+   RECURSION 1l IF child IS Category AND parent = child
+        STEP 2l IF parent = parent($parent) MATERIALIZED;
 
 canonicalName 'Каноническое имя' (Category c) =
    GROUP CONCAT name(Category parent), ' / ' ORDER DESC level(c, parent) CHARWIDTH 50 IN id;
@@ -69,9 +69,12 @@ DESIGN category {
             NEW params {
                 alignment = STRETCH;
             }
+        }
+        NEW tabs {
+            fill = 1;
+            type = TABBED;
             NEW default {
                 caption = 'Значения по умолчанию';
-                alignment = STRETCH;
             }
         }
     }

@@ -41,7 +41,7 @@ CONSTRAINT location(Shipment s) = toLocation(s)
 
 // transfer
 WHEN SETCHANGED(type(Shipment s)) AND NOT isTransfer(type(s)) DO toLocation(s) <- NULL;
-CONSTRAINT isTransfer(type(Shipment s)) AND NOT toLocation(s) MESSAGE 'Не задано место хранение (куда) для трансфера';
+CONSTRAINT isTransfer(type(Shipment s)) AND NOT toLocation(s) MESSAGE 'Не задано место хранение (куда) для перемещения';
 
 // customer
 customer = DATA Partner (Shipment) INDEXED;
@@ -80,11 +80,12 @@ CONSTRAINT initialDemand(ShipmentLine l) < 0 OR initialDemand(l) > maxQuantity(t
 
 // line properties
 nameStatus 'Статус' (ShipmentLine l) = nameStatus(shipment(l));
-scheduledDateTime 'Планируемая дата' (ShipmentLine l) = scheduledDateTime(shipment(l));
-number 'Номер' (ShipmentLine l) = number(shipment(l));
+scheduledDateTime 'Планируемая дата' (ShipmentLine l) = scheduledDateTime(shipment(l)) IN id;
+number 'Номер' (ShipmentLine l) = number(shipment(l)) IN id;
 numberDate 'Описание' (ShipmentLine l) = numberDate(shipment(l));
 customer (ShipmentLine l) = customer(shipment(l));
 nameCustomer 'Покупатель' (ShipmentLine l) = nameCustomer(shipment(l));
+location (ShipmentLine l) = location(shipment(l));
 nameLocation 'Место хранения' (ShipmentLine l) = nameLocation(shipment(l));
 
 FORM shipmentLines 'Строки отгрузки'
@@ -104,7 +105,7 @@ FORM shipment 'Отгрузка'
                   
     OBJECTS l = ShipmentLine
     PROPERTIES(l) index READONLY, nameProduct, nameUom, idBarCodeProduct, idProduct, 
-                  initialDemand SHOWIF NOT immediate(s) BACKGROUND IF isDraft(shipment(l)) THEN RGB(198,230,247) 
+                  initialDemand SHOWIF NOT immediate(s) BACKGROUND IF status(shipment(l)) = ShipmentStatus.draft THEN RGB(198,230,247) 
     PROPERTIES(l) NEW, DELETE
     FILTERS shipment(l) = s
              
@@ -143,6 +144,10 @@ DESIGN shipment {
                     PROPERTY(nameProduct(l)) { notNull = TRUE; }
                     PROPERTY(initialDemand(l)) { notNull = TRUE; }
                 }
+                NEW linesTab {
+                    fill = 0.3;
+                    type = TABBED;
+                }                
             }                  
         }
     }
@@ -156,17 +161,22 @@ DESIGN shipment {
 @defineDocHistory(shipment, s, product, initialDemand);
 
 // shipments
+background (Shipment s) = ABSTRACT CASE COLOR (Shipment);
+
 FORM shipments 'Отгрузки'
     OBJECTS s = Shipment
-    PROPERTIES(s) READONLY nameType, scheduledDateTime, number, 
+    PROPERTIES(s) READONLYIF isReadonly() BACKGROUND background(s)
+                           nameType, scheduledDateTime, number, 
                            nameCustomer, nameLocation, nameToLocation,
                            note, countLines
     PROPERTIES(s) NEWSESSION NEW, EDIT, DELETE
 ;
 
+@extendFormEditable(shipments);
+
+@defineDocObjectsForm(shipments, s, 'Отгрузки');
 @defineDocStatusForm(shipment, s);
 @defineDocLocationAccess(shipment, s);
-@defineDateFilterForm(shipments, s, scheduled);
 
 NAVIGATOR {
     operations {
@@ -189,20 +199,24 @@ EXTEND FORM shipments
 ;
 
 // copy
-copy 'Копировать' (Shipment s)  { 
+clone(Shipment to, Shipment from) {
+    type(to) <- type(from);
+    location(to) <- location(from);
+    toLocation(to) <- toLocation(from);
+    note(to) <- note(from);
+    immediate(to) <- immediate(from);
+    FOR shipment(ShipmentLine l) = from INLINE NEW nl = ShipmentLine DO {
+        shipment(nl) <- to;
+        product(nl) <- product(l);
+        initialDemand(nl) <- initialDemand(l);
+    }
+}
+
+copy 'Копировать' (Shipment from)  { 
     NEWSESSION {
-        NEW ns = Shipment {
-            type(ns) <- type(s);
-            location(ns) <- location(s);
-            toLocation(ns) <- toLocation(s);
-            note(ns) <- note(s);
-            immediate(ns) <- immediate(s);
-            FOR shipment(ShipmentLine l) = s INLINE NEW nl = ShipmentLine DO {
-                shipment(nl) <- ns;
-                product(nl) <- product(l);
-                initialDemand(nl) <- initialDemand(l);
-            }
-            SHOW shipment OBJECTS s = ns DOCKED;
+        NEW to = Shipment {
+            clone(to, from);
+            SHOW shipment OBJECTS s = to DOCKED;
         }
     }
 }

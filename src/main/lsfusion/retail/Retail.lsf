@@ -3,9 +3,9 @@ MODULE Retail;
 REQUIRE RetailSettings,
         Pos, Session,
         PaymentMethod, PaymentMethodInitial,
-        PosDashboard, PosDashboardSearch, PosDashboardHotKey,
+        PosDashboard, PosDashboardSearch, PosDashboardTouch, PosDashboardHotKey,
         PosDashboardPayment, PosDashboardCash, PosDashboardCashInitial, 
-        PosDashboardReturn, PosDashboardReturnPayment, 
-        PosDashboardOrder, PosDashboardShipment,
+        PosDashboardReturn, PosDashboardReturnPayment, PosDashboardReturnLot,
+        PosDashboardOrder, PosDashboardShipment, PosDashboardLot,
         DiscountCard, PosDashboardDiscountCard,
         DiscountCardPartner;

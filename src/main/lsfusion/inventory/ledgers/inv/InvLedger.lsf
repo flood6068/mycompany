@@ -7,7 +7,7 @@ NAMESPACE Inventory;
 CLASS ABSTRACT InvLedger 'Регистр изменения остатка';
 class 'Вид' (InvLedger l) = objectClassName(l) IF l IS InvLedger CHARWIDTH 15;
 
-type 'Тип' = ABSTRACT ISTRING[100] (InvLedger) MATERIALIZED;
+type 'Тип' = ABSTRACT ISTRING[100] (InvLedger) CHARWIDTH 20 MATERIALIZED;
 
 active 'Активный' = ABSTRACT BOOLEAN (InvLedger) MATERIALIZED;
 dateTime 'Время' = ABSTRACT DATETIME (InvLedger) MATERIALIZED;
@@ -23,8 +23,8 @@ product 'Товар' = ABSTRACT Product (InvLedger) MATERIALIZED;
 nameProduct 'Товар' (InvLedger l) = name(product(l));
 
 INDEX product(InvLedger l);
-INDEX fromLocation(InvLedger l), product(l);
-INDEX toLocation(InvLedger l), product(l);
+INDEX fromLocation(InvLedger l), product(l), dateTime(l), l;
+INDEX toLocation(InvLedger l), product(l), dateTime(l), l;
 
 quantity 'Кол-во' = ABSTRACT NUMERIC[16,3] (InvLedger) MATERIALIZED;
 
@@ -35,37 +35,52 @@ namePartner 'Контрагент' (InvLedger l) = name(partner(l));
 inQuantity 'Кол-во поступившее' (Location ll, Product p) = GROUP SUM quantity(InvLedger l) 
                                                     IF active(l) AND toLocation(l) = ll AND product(l) = p MATERIALIZED;
                                                     
-inQuantity 'Кол-во поступившее'(Location ll, Product p, DATETIME dt) = inQuantity(ll, p) (-)
+inQuantityA (Location ll, Product p, DATETIME dt) = inQuantity(ll, p) (-)
     GROUP SUM quantity(InvLedger l)  IF active(l) AND toLocation(l) = ll AND product(l) = p AND dateTime(l) > dt;
+
+inQuantityB (Location ll, Product p, DATETIME dt) = inQuantity(ll, p) (-)
+    GROUP SUM quantity(InvLedger l)  IF active(l) AND toLocation(l) = ll AND product(l) = p AND dateTime(l) >= dt;
                                    
 outQuantity 'Кол-во отправленное' (Location ll, Product p) = GROUP SUM quantity(InvLedger l) 
                                                     IF active(l) AND fromLocation(l) = ll AND product(l) = p MATERIALIZED;
 
-outQuantity 'Кол-во отправленное' (Location ll, Product p, DATETIME dt) = outQuantity(ll, p) (-)
+outQuantityA 'Кол-во отправленное' (Location ll, Product p, DATETIME dt) = outQuantity(ll, p) (-)
     GROUP SUM quantity(InvLedger l) IF active(l) AND  fromLocation(l) = ll AND product(l) = p AND dateTime(l) > dt;
 
-onHand 'Текущий остаток' (Location ll, Product p) = inQuantity(ll, p) (-) outQuantity(ll, p) MATERIALIZED;
+outQuantityB 'Кол-во отправленное' (Location ll, Product p, DATETIME dt) = outQuantity(ll, p) (-)
+    GROUP SUM quantity(InvLedger l) IF active(l) AND  fromLocation(l) = ll AND product(l) = p AND dateTime(l) >= dt;
 
-onHand 'Текущий остаток' (Location ll, Product p, DATETIME dt) = 
-                                                            inQuantity(ll, p, dt) (-) outQuantity(ll, p, dt) IF dt;
+onHand 'Текущий остаток' (Location ll, Product p) = inQuantity(ll, p) (-) outQuantity(ll, p) MATERIALIZED;
+prevOnHand (Location ll, Product p) = PREV(onHand(ll, p));
+
+onHandA 'Остаток' (Location ll, Product p, DATETIME dt) = 
+                                                            inQuantityA(ll, p, dt) (-) outQuantityA(ll, p, dt) IF dt;
+prevOnHandA (Location ll, Product p, DATETIME dt) = PREV(onHandA(ll, p, dt));
+
+onHandB 'Остаток' (Location ll, Product p, DATETIME dt) = 
+                                                            inQuantityB(ll, p, dt) (-) outQuantityB(ll, p, dt) IF dt;
+prevOnHandB 'Остаток' (Location ll, Product p, DATETIME dt) = PREV(onHandB(ll, p, dt));
 
 onHandRec 'Текущий остаток (с учетом вложенности)' (Location l, Product p) = 
     GROUP SUM onHand(Location child, p) IF level(child, l) MATERIALIZED;
 
+prevOnHandRec 'Текущий остаток (с учетом вложенности)' (Location l, Product p) = PREV(onHandRec(l, p)); 
+    
+
 // dates
 dateReceived 'Дата последнего прихода' (Location l, Product p) = 
-    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il) WHERE toLocation(il) = l AND product(il) = p;
+    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il), il WHERE toLocation(il) = l AND product(il) = p MATERIALIZED;
 prevDateReceived (Location l, Product p) = PREV(dateReceived(l, p));
     
 dateShipped 'Дата последней отгрузки' (Location l, Product p) = 
-    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il) WHERE fromLocation(il) = l AND product(il) = p;
+    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il), il WHERE fromLocation(il) = l AND product(il) = p;
     
 datePrevOperation(Location l, Product p, DATETIME dt) = 
-    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il) 
+    GROUP LAST dateTime(InvLedger il) ORDER dateTime(il), il 
     WHERE (fromLocation(il) = l OR toLocation(il) = l) AND product(il) = p AND dateTime(il) < dt AND active(il);
 
-onHandFromLocation 'Остаток после операции (откуда)' (InvLedger inv) = onHand(fromLocation(inv), product(inv), dateTime(inv));
-onHandToLocation 'Остаток после операции (куда)' (InvLedger inv)= onHand(toLocation(inv), product(inv), dateTime(inv));                                               
+onHandAFromLocation 'Остаток после операции (откуда)' (InvLedger inv) = onHandA(fromLocation(inv), product(inv), dateTime(inv));
+onHandAToLocation 'Остаток после операции (куда)' (InvLedger inv)= onHandA(toLocation(inv), product(inv), dateTime(inv));                                               
 
 // constraint
 positiveOnHand 'Запрет отрицательных остатков' = DATA BOOLEAN (Location) CHARWIDTH 15;

@@ -9,7 +9,7 @@ NAMESPACE MasterData;
 CLASS ABSTRACT Item 'Номенклатура';
 class 'Вид' (Item i) = objectClassName(i) IF i IS Item CHARWIDTH 6;
 
-@defineID(item, 'Номенклатуры', 'НМ');
+@defineID(item, 'Номенклатуры', 'НМ', 6);
 
 dataName 'Наименование' = DATA ISTRING[200] (Item) IN id NONULL CHARWIDTH 20;
 prefixName 'Префикс' = ABSTRACT STRING (Item);
@@ -17,15 +17,19 @@ suffixName 'Суффикс' = ABSTRACT STRING (Item);
 
 name 'Наименование (полное)' (Item i) = CONCAT ' ', prefixName(i), dataName(i), suffixName(i) CHARWIDTH 30 MATERIALIZED INDEXED;
 
+reference 'Артикул' = DATA STRING[50] (Item) CHARWIDTH 10;
+
+description 'Описание' = DATA TEXT (Item);
+
 category 'Категория' = DATA Category (Item) NONULL INDEXED;
 idCategory 'Код категории' (Item i) = id(category(i));
 nameCategory 'Категория' (Item i) = name(category(i));
 canonicalNameCategory 'Категория (полная)' (Item i) = canonicalName(category(i));
 
 // uom
-uom 'Единица измерения' = DATA Uom (Item);
-idUom 'Код единицы измерения' (Item i) = id(uom(i));
-nameUom 'Единица измерения' (Item i) = name(uom(i));
+uom = DATA Uom (Item);
+idUom 'Код ед. изм.' (Item i) = id(uom(i));
+nameUom 'Ед. изм.' (Item i) = name(uom(i));
 
 CONSTRAINT DROPPED(Uom u IS Uom) AND PREV(uom(Item i)) MESSAGE 'Нельзя удалить единицу измерения на которую ссылается номенклатура'; 
 
@@ -35,7 +39,7 @@ EXTEND FORM category PROPERTIES nameDataDefaultUom(c);
 DESIGN category { default { MOVE PROPERTY(nameDataDefaultUom(c)); } }
 
 defaultUom (Category c) = GROUP LAST dataDefaultUom(Category parent) ORDER DESC level(c, parent);
-WHEN LOCAL SETCHANGED(category(Item i)) AND NOT CHANGED(uom(i)) DO uom(i) <- defaultUom(category(i));
+WHEN LOCAL SETCHANGED(category(Item i)) AND NOT uom(i) DO uom(i) <- defaultUom(category(i));
 
 archived 'Неактивный' = DATA BOOLEAN (Item) CHARWIDTH 10;
 active 'Активный' (Item i) = NOT archived(i) CHARWIDTH 10;
@@ -59,13 +63,33 @@ FORM item 'Номенклатура'
     OBJECTS i = Item PANEL
     PROPERTIES(i) dataName READONLYIF readonly(i), class READONLY, 
                   name READONLY, id, canonicalNameCategory READONLYIF readonly(i), nameUom READONLYIF readonly(i),
-                  archived READONLYIF readonly(i)
+                  archived READONLYIF readonly(i),
+                  reference READONLYIF readonly(i), '' = description READONLYIF readonly(i)
       
     EDIT Item OBJECT i
 ;
 
 DESIGN item {
+    caption = CONCAT ' ', class(i), name(i);
     OBJECTS {        
+        NEW statusPane FIRST {
+            caption = 'Статусы';
+            type = CONTAINERH;
+            alignment = STRETCH;                          
+            NEW statusActions {
+                type = CONTAINERH;                    
+                flex = 1; 
+                NEW primaryActions {
+                    type = CONTAINERH;
+                }
+                NEW secondaryActions {
+                    type = CONTAINERH;
+                }           
+            }
+            NEW status {
+                type = CONTAINERH;
+            }
+        }    
         NEW header {                          
             NEW row1 {
                 type = CONTAINERH;
@@ -74,12 +98,13 @@ DESIGN item {
                 MOVE PROPERTY(class(i));
             }
             MOVE PROPERTY(name(i)) { alignment = STRETCH; }                   
+            MOVE PROPERTY(canonicalNameCategory(i));
             NEW pane {
                 type = CONTAINERH;
                 alignment = STRETCH;
                 NEW column1 {
-                    MOVE PROPERTY(canonicalNameCategory(i));
                     MOVE PROPERTY(id(i));
+                    MOVE PROPERTY(reference(i));
                 }        
                 NEW column2 {
                     MOVE PROPERTY(nameUom(i));
@@ -92,12 +117,13 @@ DESIGN item {
         NEW tabs {
             type = TABBED;
             fill = 1;
-            NEW image {
-                caption = 'Изображение';
-            }
             NEW operations {
                 type = TABBED;
                 caption = 'Документы';
+            }
+            NEW description {
+                caption = 'Описание';
+                MOVE PROPERTY(description(i)) { fill = 1; };
             }
         }
     }  
@@ -109,7 +135,7 @@ FORM items 'Номенклатура'
     ORDERS name(c)
 
     OBJECTS i = Item
-    PROPERTIES(i) READONLYIF isReadonly() name, id, nameCategory, nameUom, class READONLY
+    PROPERTIES(i) READONLYIF isReadonly() name, id, nameCategory, nameUom, reference, class READONLY
     PROPERTIES(i) SHOWIF isReadonly() NEWSESSION EDIT, DELETE
     ORDERS name(i) 
     FILTERS level(category(i), c)

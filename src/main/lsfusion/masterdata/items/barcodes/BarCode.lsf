@@ -1,6 +1,6 @@
 MODULE BarCode;
 
-REQUIRE MasterData, Item;
+REQUIRE MasterData, Item, Product;
 
 NAMESPACE MasterData;
 
@@ -10,9 +10,13 @@ item 'Номенклатура' = DATA Item (BarCode) NONULL DELETE;
 idItem 'Код номенклатуры' (BarCode b) = id(item(b));
 nameItem 'Номенклатура' (BarCode b) = name(item(b));
 
-id 'Штрихкод' = DATA STRING (BarCode);
-barCode (STRING[50] id) = GROUP AGGR BarCode b BY id(b);
+multiple = ABSTRACT BOOLEAN (BarCode) MATERIALIZED;
+
+@defineID(barCode, 'Штрихкоды', '', 13);
 itemBarCode (STRING[50] id) = item(barCode(id));
+
+singleBarCode (STRING[50] id) = GROUP MAX BarCode b IF NOT multiple(b) BY id(b);
+itemSingleBarCode (STRING[50] id) = item(singleBarCode(id));
 
 dataDefaultBarCode = DATA BarCode (Item);
 calcDefaultBarCode (Item i) = GROUP LAST BarCode b ORDER DESC b WHERE item(b) = i;
@@ -54,7 +58,7 @@ DESIGN item {
         MOVE PROPERTY(idBarCode(i));
     }
     tabs {
-        NEW barcodes {
+        NEW barCodes {
             caption = 'Штрихкоды';
             MOVE BOX(b);        
         }
@@ -65,20 +69,25 @@ EXTEND FORM items
     PROPERTIES(i) READONLYIF isReadonly() idBarCode AFTER name(i)
 ;
 
-consumedBarcode = DATA LOCAL BOOLEAN ();
+EXTEND FORM products
+    PROPERTIES(p) idBarCode AFTER name(p)
+;
+
+consumedBarCode = DATA LOCAL BOOLEAN ();
 barCode 'Штрихкод' = DATA LOCAL STRING () CHANGEKEY 'F4';
 
 META defineBarCodeSearch(doc, let, line, itm, quantity)
-    processBarCode ABSTRACT (###doc, ###doc##Line, STRING);
+    processBarCode ABSTRACT LIST (###doc, ###doc##Line, STRING);
     scanBarCode (###doc d, ###doc##Line l) {
         INPUT id = STRING DO {
-            IF itemBarCode(id) THEN {
-                set###quantity(d, itemBarCode(id), quantity(d, itemBarCode(id)) (+) 1);
-                SEEK ##doc.line = last###doc##Line(d, itemBarCode(id));
+            IF itemSingleBarCode(id) THEN {
+                set###quantity(d, itemSingleBarCode(id), quantity(d, itemSingleBarCode(id)) (+) 1);
+                SEEK ##doc.line = last###doc##Line(d, itemSingleBarCode(id));
+                ACTIVATE PROPERTY ##doc.quantity(line); 
             } ELSE {
-                consumedBarcode() <- NULL;
+                consumedBarCode() <- NULL;
                 processBarCode(d, l, id);
-                IF NOT consumedBarcode() THEN
+                IF NOT consumedBarCode() THEN
                     MESSAGE 'Штрихкод не найден';
             }
         }
@@ -88,3 +97,58 @@ META defineBarCodeSearch(doc, let, line, itm, quantity)
         PROPERTIES() barCode DRAW l TOOLBAR ON CHANGE scanBarCode(##let, l)
     ;
 END
+
+META defineBarCodeSeek(form, obj, gobj)
+    scanBarCode###form () {
+        INPUT id = STRING DO {
+            IF itemBarCode(id) THEN
+                SEEK form.obj = itemBarCode(id);
+            ELSE
+                MESSAGE 'Штрихкод не найден';
+        }
+    }
+    
+    EXTEND FORM form
+        PROPERTIES() barCode DRAW gobj TOOLBAR ON CHANGE scanBarCode###form()
+    ;
+END
+
+META defineBarCodeSeek(form, obj)
+    @defineBarCodeSeek(form, obj, obj);
+END
+
+// add barcode item form
+changeBarCode (Item i) {
+    INPUT s = STRING DO {
+        IF s THEN {
+            IF barCode(s) THEN
+                MESSAGE 'Штрихкод уже присутствует в базе данных.';
+            ELSE NEW b = BarCode {
+                item(b) <- i;
+                id(b) <- s;
+            }
+        } 
+    }
+}
+
+EXTEND FORM item
+    PROPERTIES() barCode DRAW b TOOLBAR ON CHANGE changeBarCode(i)
+;
+
+// auto create
+dataAutoCreateBarCode 'Автоматически генерировать штрихкод' = DATA BOOLEAN (Category);
+autoCreateBarCode (Category c) = GROUP LAST dataAutoCreateBarCode(Category cp) ORDER level(c, cp);
+
+EXTEND FORM category
+    PROPERTIES(c) dataAutoCreateBarCode
+;
+
+DESIGN category {
+    params {
+        MOVE PROPERTY(dataAutoCreateBarCode(c));
+    }
+}
+
+WHEN SET(Item i IS Item) AND autoCreateBarCode(category(i)) AND NOT defaultBarCode(i) DO NEW b = BarCode {
+    item(b) <- i;
+}

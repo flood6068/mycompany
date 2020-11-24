@@ -79,22 +79,22 @@ DESIGN posDashboard {
                                 NEW itemDetails1 {
                                     alignment = STRETCH;
                                     type = CONTAINERH;
-                                    MOVE PROPERTY(nameItemPanel) { panelCaptionAbove = TRUE; focusable = FALSE; }
-                                    MOVE PROPERTY(nameUom(l)) { panelCaptionAbove = TRUE; focusable = FALSE; }
+                                    MOVE PROPERTY(nameItemPanel) { panelCaptionVertical = TRUE; focusable = FALSE; }
+                                    MOVE PROPERTY(nameUom(l)) { panelCaptionVertical = TRUE; focusable = FALSE; }
                                 }
                                 NEW itemDetails2 {
                                     alignment = STRETCH;
                                     type = CONTAINERH;
-                                    MOVE PROPERTY(idBarCodeItem(l)) { panelCaptionAbove = TRUE; focusable = FALSE; }
-                                    MOVE PROPERTY(idItem(l)) { panelCaptionAbove = TRUE; focusable = FALSE; }
+                                    MOVE PROPERTY(idBarCodeItem(l)) { panelCaptionVertical = TRUE; focusable = FALSE; }
+                                    MOVE PROPERTY(idItem(l)) { panelCaptionVertical = TRUE; focusable = FALSE; }
                                 }
                             }
                             NEW total {
                                 type = CONTAINERH;
                                 alignment = STRETCH;
-                                MOVE PROPERTY(fullAmount(i)) { charWidth = 8; panelCaptionAbove = TRUE; fontSize = 24; focusable = FALSE; }
-                                MOVE PROPERTY(discountAmount(i)) { charWidth = 8; panelCaptionAbove = TRUE; fontSize = 24; focusable = FALSE; }
-                                MOVE PROPERTY(amount(i)) { charWidth = 8; panelCaptionAbove = TRUE; fontSize = 24; focusable = FALSE; }
+                                MOVE PROPERTY(fullAmount(i)) { charWidth = 8; panelCaptionVertical = TRUE; fontSize = 24; focusable = FALSE; }
+                                MOVE PROPERTY(discountAmount(i)) { charWidth = 8; panelCaptionVertical = TRUE; fontSize = 24; focusable = FALSE; }
+                                MOVE PROPERTY(amount(i)) { charWidth = 8; panelCaptionVertical = TRUE; fontSize = 24; focusable = FALSE; }
                             }
                         }
                         NEW actions {
@@ -169,12 +169,13 @@ DESIGN posDashboard {
 
 DESIGN posDashboard { REMOVE PROPERTY(posDashboardPress0(l)); }
 
+afterCreateInvoice ABSTRACT LIST (Invoice);
 createInvoice (Session s) {
     IF s THEN
         NEW i = Invoice {
-            ready(i) <- TRUE;
             session(i) <- s;
             SEEK posDashboard.i = i;
+            afterCreateInvoice(i);
         }
 }
 
@@ -205,21 +206,21 @@ DESIGN posDashboard {
 }
 
 // barcode handling
-processBarcode ABSTRACT LIST (Invoice, STRING);
-changeBarcode (Invoice i) {
+processBarCode ABSTRACT LIST (Invoice, InvoiceLine, STRING);
+changeBarCode (Invoice i, InvoiceLine l) {
     INPUT b = STRING DO {
         IF b THEN {
-            consumedBarcode() <- NULL;
-            processBarcode(i, b);
+            consumedBarCode() <- NULL;
+            processBarCode(i, l, b);
             
-            IF NOT consumedBarcode() THEN
+            IF NOT consumedBarCode() THEN
                 MESSAGE 'Штрих-код не найден';
         } 
     }
 }
 
 EXTEND FORM posDashboard
-    PROPERTIES() barCode ON CHANGE changeBarcode(i)
+    PROPERTIES() barCode ON CHANGE changeBarCode(i, l)
 ;
 
 DESIGN posDashboard {

@@ -1,6 +1,6 @@
 MODULE ManufacturingOrderWaiting;
 
-REQUIRE ManufacturingOrder;
+REQUIRE ManufacturingOrder, ManufacturingOrderSelection;
 
 NAMESPACE Manufacturing;
 
@@ -39,3 +39,5 @@ EXTEND FORM manufacturingOrders
     EXTEND FILTERGROUP status
         FILTER 'В ожидании' status(o) = ManufacturingOrderStatus.waiting    
 ;
+
+@defineSelectionAction(manufacturingOrders, ManufacturingOrder, markAsToDo, 'В работу', statuses);

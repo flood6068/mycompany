@@ -28,8 +28,8 @@
 		<paragraph leftIndent="2" rightIndent="2"/>
 	</style>
 	<field name="o.object" class="java.lang.Long"/>
-	<field name="scheduledDateTime(o)" class="java.sql.Timestamp"/>
-	<field name="executionDateTime(o)" class="java.sql.Timestamp"/>
+	<field name="scheduledDateTime(o)" class="java.util.Date"/>
+	<field name="executionDateTime(o)" class="java.util.Date"/>
 	<field name="number(o)" class="java.lang.String"/>
 	<field name="nameCustomer(o)" class="java.lang.String"/>
 	<field name="addressCustomer(o)" class="java.lang.String"/>
@@ -39,8 +39,6 @@
 	<field name="nameToLocation(o)" class="java.lang.String"/>
 	<field name="addressToLocation(o)" class="java.lang.String"/>
 	<field name="performed" class="java.lang.String"/>
-	<field name="numberDateOrder(o)" class="java.lang.String"/>
-	<field name="numberDateInvoice(o)" class="java.lang.String"/>
 	<field name="positionPerformed" class="java.lang.String"/>
 	<field name="received" class="java.lang.String"/>
 	<field name="positionReceived" class="java.lang.String"/>
@@ -49,7 +47,6 @@
 	<field name="phoneCompany(o)" class="java.lang.String"/>
 	<field name="emailCompany(o)" class="java.lang.String"/>
 	<field name="websiteCompany(o)" class="java.lang.String"/>
-	<field name="nameAccountCompany(o)" class="java.lang.String"/>
 	<field name="innCompany(o)" class="java.lang.String"/>
 	<field name="okpoCompany(o)" class="java.lang.String"/>
 	<field name="l.object" class="java.lang.Long"/>
@@ -227,7 +224,7 @@
 					<bottomPen lineWidth="0.75" lineStyle="Solid" lineColor="#000000"/>
 					<rightPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				</box>
-				<textFieldExpression><![CDATA[($F{nameCompany(o)}!=null?$F{nameCompany(o)}:"") + ", " + ($F{innCompany(o)}!=null?$F{innCompany(o)}:"") + ", " + ($F{addressCompany(o)}!=null?$F{addressCompany(o)}:"") + ", " + ($F{phoneCompany(o)}!=null?$F{phoneCompany(o)}:"") + ", " + ($F{emailCompany(o)}!=null?$F{emailCompany(o)}:"") + ", " + ($F{websiteCompany(o)}!=null?$F{websiteCompany(o)}:"") + ", " + ($F{nameAccountCompany(o)}!=null?$F{nameAccountCompany(o)}:"")]]></textFieldExpression>
+				<textFieldExpression><![CDATA[($F{nameCompany(o)}!=null?$F{nameCompany(o)}:"") + ", " + ($F{innCompany(o)}!=null?$F{innCompany(o)}:"") + ", " + ($F{addressCompany(o)}!=null?$F{addressCompany(o)}:"") + ", " + ($F{phoneCompany(o)}!=null?$F{phoneCompany(o)}:"") + ", " + ($F{emailCompany(o)}!=null?$F{emailCompany(o)}:"") + ", " + ($F{websiteCompany(o)}!=null?$F{websiteCompany(o)}:"")]]></textFieldExpression>
 			</textField>
 			<textField>
 				<reportElement x="139" y="117" width="301" height="18" uuid="4b0598cd-62dc-489d-bc8a-152857afa4e3"/>
@@ -545,12 +542,12 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["9"]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="672" y="60" width="57" height="14" uuid="2442c43f-a942-4e91-b85a-db07696a4d0e"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["10"]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="729" y="60" width="73" height="14" uuid="3826e24c-e5df-4cbb-98cb-12aec36c5f1e"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["11"]]></textFieldExpression>
@@ -608,12 +605,12 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$F{weightDone(l)}]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="672" y="0" width="57" height="14" uuid="f1d9207e-6221-4c08-95ef-f6bb3ae92b73"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$F{costPrice(l)}]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="729" y="0" width="73" height="14" uuid="778d9b15-d2f1-457b-a7d8-5b94dbfe7a47"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$F{costAmount(l)}]]></textFieldExpression>
@@ -648,12 +645,12 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$V{weightDonePage}]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="672" y="0" width="57" height="14" uuid="087ad058-df19-4166-8db7-15e5b5d005b7"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["Х"]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="729" y="0" width="73" height="14" uuid="44004f43-d0da-4ffb-9049-1ba7dd3457cd"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$V{costAmountPage}]]></textFieldExpression>
@@ -919,12 +916,12 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$V{weightDoneTotal}]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="672" y="0" width="57" height="14" uuid="f87d820e-3e78-468d-8143-9426f19294ae"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA["Х"]]></textFieldExpression>
 			</textField>
-			<textField textAdjust="StretchHeight" isBlankWhenNull="true">
+			<textField textAdjust="ScaleFont" pattern="#,##0.00" isBlankWhenNull="true">
 				<reportElement style="GroupCellStyle0" stretchType="RelativeToBandHeight" x="729" y="0" width="73" height="14" uuid="005b239d-fa3a-4c8c-bcd3-904d1ea72aa8"/>
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$V{costAmountTotal}]]></textFieldExpression>

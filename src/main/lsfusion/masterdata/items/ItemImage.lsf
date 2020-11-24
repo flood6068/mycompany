@@ -7,37 +7,40 @@ NAMESPACE MasterData;
 image 'Изображение' = DATA IMAGEFILE (Item);
 loadImage 'Загрузить' (Item i)  { INPUT = image(i) CHANGE; }
 openImage 'Открыть' (Item i)  { open(image(i)); }
+dropImage 'Сбросить' (Item i) { image(i) <- NULL; }
 
 copy(Item n, Item o) + {
     image(n) <- image(o);
 }
 
 EXTEND FORM item
-    PROPERTIES(i) image , loadImage, openImage
+    PROPERTIES(i) image, loadImage, openImage, dropImage SHOWIF TRUE IF image(i) 
 ;
 
 DESIGN item {
-    image {
-        MOVE PROPERTY(image(i)) { fill = 1; caption = ''; }
-        NEW imageActions {
-            type = CONTAINERH;
-            MOVE PROPERTY(loadImage(i));
-            MOVE PROPERTY(openImage(i));
+    tabs {
+        NEW image {
+            caption = 'Изображение';
+            MOVE PROPERTY(image(i)) { fill = 1; caption = ''; }
+            NEW imageActions {
+                type = CONTAINERH;
+                MOVE PROPERTY(loadImage(i));
+                MOVE PROPERTY(openImage(i));
+                MOVE PROPERTY(dropImage(i));
+            }
         }
     }
 }
 
 EXTEND FORM items
-    OBJECTS ii = Item PANEL 
-    PROPERTIES(ii) READONLY image
-    FILTERS ii = i
+    PROPERTIES(i) READONLY image PANEL
 ;
 
 DESIGN items {
     tabs {
         NEW image {
             caption = 'Изображение';
-            MOVE PROPERTY(image(ii)) { fill = 1; caption = ''; }
+            MOVE PROPERTY(image(i)) { fill = 1; caption = ''; }
         }
     }
 }

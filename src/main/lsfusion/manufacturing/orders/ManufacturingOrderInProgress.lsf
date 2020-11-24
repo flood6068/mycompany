@@ -66,5 +66,11 @@ DESIGN manufacturingOrder {
 }
 
 EXTEND FORM manufacturingOrders
-    PROPERTIES(o) produced AFTER toManufacture(o)
+    PROPERTIES(o) BACKGROUND background(o) READONLYIF isReadonly()
+                             manufactured AFTER toManufacture(o) ON CHANGE changeManufactured(o)
+
+    EXTEND FILTERGROUP status
+        FILTER 'В процессе' status(o) = ManufacturingOrderStatus.inProgress    
 ;
+
+@defineSelectionAction(manufacturingOrders, ManufacturingOrder, manufacture, 'Произвести', statuses);

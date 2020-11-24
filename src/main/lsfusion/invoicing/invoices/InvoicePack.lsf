@@ -1,10 +1,12 @@
 MODULE InvoicePack;
 
-REQUIRE ItemSalesPack,
+REQUIRE ItemSalesPack, BarCodePack,
         Invoice;
 
 NAMESPACE Invoicing;
 
-@defineDocPack(invoice, sales, i);
+@defineDocPack(invoice, sales, item, quantity, i);
 
 @defineDocSearchPack(invoice, sales, i);
+
+@defineBarCodeSearchPack(invoice, l, quantity);
