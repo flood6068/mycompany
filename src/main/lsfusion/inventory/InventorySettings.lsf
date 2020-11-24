@@ -1,5 +1,7 @@
 MODULE InventorySettings;
 
+REQUIRE PurchaseSettings;
+
 NAMESPACE Inventory;
 
 FORM options 'Настройки';
@@ -17,7 +19,7 @@ DESIGN options {
 }
 
 NAVIGATOR {
-    NEW FOLDER stock 'Склад' WINDOW toolbar IMAGE 'inventory.png' { 
+    NEW FOLDER stock 'Склад' WINDOW toolbar IMAGE 'inventory.png' AFTER purchase { 
         NEW FOLDER operations 'Операции' {
         }
         NEW FOLDER dashboards 'Процессы' {  

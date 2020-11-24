@@ -1,5 +1,7 @@
 MODULE PurchaseSettings;
 
+REQUIRE MasterData;
+
 NAMESPACE Purchase;
 
 FORM options 'Настройки'; 
@@ -17,7 +19,7 @@ DESIGN options {
 } 
 
 NAVIGATOR {
-    NEW FOLDER purchase 'Закупки' WINDOW toolbar IMAGE 'purchase.png' {
+    NEW FOLDER purchase 'Закупки' WINDOW toolbar IMAGE 'purchase.png' AFTER masterData {
         NEW FOLDER operations 'Операции' {  
         }
         NEW FOLDER reporting 'Отчеты' {

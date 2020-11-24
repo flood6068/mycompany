@@ -1,5 +1,7 @@
 MODULE ManufacturingSettings;
 
+REQUIRE RetailSettings;
+
 NAMESPACE Manufacturing;
 
 FORM options 'Настройки'
@@ -18,7 +20,7 @@ DESIGN options {
 }
 
 NAVIGATOR {
-    NEW FOLDER manufacturing 'Производство' WINDOW toolbar IMAGE 'manufacturing.png' {
+    NEW FOLDER manufacturing 'Производство' WINDOW toolbar IMAGE 'manufacturing.png' AFTER retail {
         NEW FOLDER operations 'Операции' {  
         }
         NEW FOLDER reporting 'Отчеты' {  

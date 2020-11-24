@@ -1,6 +1,6 @@
 MODULE SalesSettings;
 
-REQUIRE Numerator, ShipmentType, Item, Partner;
+REQUIRE Numerator, ShipmentType, Item, Partner, InvoicingSettings;
 
 NAMESPACE Sales;
 
@@ -20,7 +20,7 @@ DESIGN options {
  
 
 NAVIGATOR {
-    NEW FOLDER sales 'Продажи' WINDOW toolbar IMAGE 'sales.png' {
+    NEW FOLDER sales 'Продажи' WINDOW toolbar IMAGE 'sales.png' AFTER invoicing {
         NEW FOLDER operations 'Операции' {  
         }
         NEW FOLDER dashboards 'Процессы' {  

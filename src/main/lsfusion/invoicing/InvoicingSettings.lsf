@@ -1,5 +1,7 @@
 MODULE InvoicingSettings;
 
+REQUIRE InventorySettings;
+
 NAMESPACE Invoicing;
 
 FORM options 'Настройки'
@@ -15,7 +17,7 @@ DESIGN options {
 }
 
 NAVIGATOR {
-    NEW FOLDER invoicing 'Расчеты' WINDOW toolbar IMAGE 'invoicing.png' {
+    NEW FOLDER invoicing 'Расчеты' WINDOW toolbar IMAGE 'invoicing.png' AFTER stock {
         NEW FOLDER operations 'Операции' {
         }
         NEW FOLDER reporting 'Отчеты' { 

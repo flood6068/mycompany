@@ -1,5 +1,7 @@
 MODULE RetailSettings;
 
+REQUIRE SalesSettings;
+
 NAMESPACE Retail;
 
 FORM options 'Настройки';
@@ -17,7 +19,7 @@ DESIGN options {
 } 
 
 NAVIGATOR {
-    NEW FOLDER retail 'Розничная торговля' WINDOW toolbar IMAGE 'retail.png' {
+    NEW FOLDER retail 'Розничная торговля' WINDOW toolbar IMAGE 'retail.png' AFTER sales {
         NEW FOLDER operations 'Операции' {  
         }
         NEW FOLDER settings 'Настройка' {
