@@ -10,7 +10,48 @@ id 'Код' = DATA STRING[100] (Lot) CHARWIDTH 15;
 lot (STRING[100] id) = GROUP AGGR Lot o BY id(o);
 
 product 'Товар' = DATA Product (Lot) NONULL INDEXED;
+idProduct 'Код товара' (Lot l) = id(product(l)) IN id;
 nameProduct 'Товар' (Lot l) = name(product(l)) IN id;
+
+FORM lot 'Партия'
+    OBJECTS l = Lot PANEL
+    PROPERTIES(l) id, idProduct, nameProduct
+    
+    EDIT Lot OBJECT l
+;
+
+DESIGN lot {
+    caption = CONCAT ' ', 'Партия', id(l);
+    OBJECTS {        
+        NEW statusPane FIRST {
+            caption = 'Статусы';
+            type = CONTAINERH;
+            alignment = STRETCH;                          
+            NEW statusActions {
+                type = CONTAINERH;                    
+                flex = 1; 
+                NEW primaryActions {
+                    type = CONTAINERH;
+                }
+                NEW secondaryActions {
+                    type = CONTAINERH;
+                }           
+            }
+            NEW status {
+                type = CONTAINERH;
+            }
+        }    
+        NEW header {                          
+            NEW row1 {
+                type = CONTAINERH;
+                alignment = STRETCH;
+                MOVE PROPERTY(id(l));
+                MOVE PROPERTY(idProduct(l));
+            }
+            MOVE PROPERTY(nameProduct(l)) { alignment = STRETCH; };
+        }
+    }  
+}
 
 useLot 'Партионный учет' = DATA BOOLEAN ();
 
@@ -24,90 +65,115 @@ DESIGN options {
     }
 } 
 
-META defineDocLot (doc, item, quantity, status, caption)
-    quantity 'Кол-во'##caption = DATA NUMERIC[16,3] (###doc##Line, Lot);
+META defineDocLot (doc, line, item, quantity, status, caption)
+    quantity 'Кол-во'##caption = DATA NUMERIC[16,3] (line, Lot);
     
-    lots###quantity 'Партии' (###doc##Line l) = 
+    lots###quantity 'Партии' (line l) = 
         GROUP CONCAT
             (CONCAT '', id(Lot lot) IF quantity(l, lot), '(' + (STRING(DOUBLE(quantity(l, lot))) IF (quantity(l, lot) != 1)) + ')'), 
             ',' CHARWIDTH 15; 
     
-    quantity##Lot 'Кол-во партий'##caption (###doc##Line rl) = GROUP SUM quantity(rl, Lot l);
+    quantity##Lot 'Кол-во партий'##caption (line rl) = GROUP SUM quantity(rl, Lot l);
+    quantity##LotLeft (line rl) = quantity(rl) - OVERRIDE quantity##Lot(rl), 0;
        
-    WHEN LOCAL CHANGED(quantity##Lot(###doc##Line rl)) AND NOT status(doc(rl)) DO {
+    WHEN LOCAL CHANGED(quantity##Lot(line rl)) AND NOT status(doc(rl)) DO {
         quantity(rl) <- quantity##Lot(rl);
     }
     
-    CONSTRAINT quantity(###doc##Line rl, Lot l) AND item(rl) != product(l)
+    CONSTRAINT quantity(line rl, Lot l) AND item(rl) != product(l)
                     MESSAGE 'Строка для партии должна относится к тому же продукту, что и партия';
-    CONSTRAINT useLot(item(###doc##Line rl)) AND ((OVERRIDE quantity(rl), 0.0) - quantity##Lot(rl) < 0) AND status(doc(rl))
+    CONSTRAINT SET(((OVERRIDE quantity(line rl), 0.0) - quantity##Lot(rl) < 0) AND status(doc(rl))) AND useLot(item(rl))
                     MESSAGE 'Несовпадение количества с количеством в партиях'##caption;                   
 END 
 
-META defineDocBarCodeLot (doc, item, quantity)
+META defineDocLot (doc, item, quantity, status, caption)
+    @defineDocLot (doc, ###doc##Line, item, quantity, status, caption);
+END
+
+barCodeToLotId = ABSTRACT CASE STRING (STRING);
+
+META defineDocBarCodeLot (doc, docLine, item, quantity)
     
-    beforeProcessLotBarCode ABSTRACT (###doc, STRING);
-    afterProcessLotBarCode ABSTRACT (###doc, STRING);
+    beforeProcess##docLine##LotBarCode ABSTRACT (###doc, STRING);
+    afterProcess##docLine##LotBarCode ABSTRACT (###doc, STRING);
        
-    processBarCode(###doc r, ###doc##Line rl, STRING s) + {
-        IF lot(s) OR useLot(item(rl)) THEN {
-            beforeProcessLotBarCode(r, s);
+    processBarCode(###doc r, docLine rl, STRING s) + {
+        LOCAL lotId = STRING();
+        lotId() <- OVERRIDE barCodeToLotId(s), (s AS STRING);
+         
+        IF lot(lotId()) OR useLot(item(rl)) THEN {
+            beforeProcess##docLine##LotBarCode(r, lotId());
             
-            IF NOT lot(s) THEN
+            LOCAL lot = Lot();
+            lot() <- lot(lotId());
+            
+            IF NOT lot() THEN
                 RETURN;
                  
-            IF NOT product(lot(s)) THEN {
-                product(lot(s)) <- item(rl);
+            IF NOT product(lot()) THEN {
+                product(lot()) <- item(rl);
             }
         
-            LOCAL line = ###doc##Line();
+            LOCAL line = docLine();
             
-            IF product(lot(s)) AND NOT product(lot(s)) = item(rl) THEN {
-                IF NOT last###doc##Line(doc(rl), product(lot(s))) THEN {
-                    NEW l = ###doc##Line {
+            IF product(lot()) AND NOT product(lot()) = item(rl) THEN {
+                IF NOT last##docLine(doc(rl), product(lot())) THEN {
+                    NEW l = docLine {
                         doc(l) <- r;
-                        item(l) <- product(lot(s));
+                        item(l) <- product(lot());
+                        line() <- l;
                     }
-                }                
-                line() <- last###doc##Line(doc(rl), product(lot(s)));
+                } ELSE               
+                    line() <- last##docLine(doc(rl), product(lot()));
                 SEEK doc.l = line();            
             } ELSE
                 line() <- rl;                      
                 
-            quantity(line(), lot(s)) <- quantity(line(), lot(s)) (+) 1;
+            quantity(line(), lot()) <- quantity(line(), lot()) (+) 1;
+            IF quantity##Lot(line()) > OVERRIDE quantity(line()), 0 THEN
+                quantity(line()) <- quantity##Lot(line()); 
                     
-            afterProcessLotBarCode(r, s);
+            afterProcess##docLine##LotBarCode(r, lotId());
             
             consumedBarCode() <- TRUE;
         }
     }
 END
 
-META defineDocDesignLotTab(doc, quantity)
+META defineDocBarCodeLot (doc, item, quantity)
+    @defineDocBarCodeLot (doc, ###doc##Line, item, quantity);
+END
+
+META defineDocDesignLotTab(doc, docLine, quantity, item, line, container)
     EXTEND FORM doc
-        PROPERTIES(l) AFTER quantity(l) SHOWIF useLot() BACKGROUND RGB(198,230,247) IF useLot(product(l)) 
+        PROPERTIES(line) AFTER quantity(line) SHOWIF useLot() BACKGROUND RGB(198,230,247) IF useLot(item(line)) 
                       quantity##Lot 
         
-        OBJECTS lot = Lot
-        PROPERTIES (lot) id READONLY
-        PROPERTIES (l, lot) quantity READONLYIF NOT useLot(product(lot))
-        FILTERS quantity(l, lot)   
+        OBJECTS lot###line = Lot
+        PROPERTIES (lot###line) id READONLY
+        PROPERTIES (line, lot###line) quantity READONLYIF NOT useLot(product(lot###line))
+        PROPERTIES (lot###line) EDIT
+        FILTERS quantity(line, lot###line)   
     ;
     
     DESIGN doc {
-        linesTab {
-            MOVE BOX(lot) {
+        container {
+            MOVE BOX(lot###line) {
                 caption = 'Партии';
                 showIf = useLot();
             }
         }
     }
     
-    afterProcessLotBarCode(###doc d, STRING s) + {
-        SEEK doc.lot = lot(s);
-        ACTIVATE TAB doc.BOX(lot);
-        ACTIVATE PROPERTY doc.quantity(l, lot); 
+    afterProcess##docLine##LotBarCode(###doc d, STRING s) + {
+        SEEK doc.lot###line = lot(s);
+        ACTIVATE TAB doc.BOX(lot###line);
+        ACTIVATE PROPERTY doc.quantity(line, lot###line); 
     }    
+END
+
+META defineDocDesignLotTab(doc, quantity, item, container)
+    @defineDocDesignLotTab(doc, ###doc##Line, quantity, item, l, container);
 END
 
 META defineLotCodeSearch(doc, quantity)
@@ -137,4 +203,26 @@ META defineLotCodeSearch(doc, quantity)
     
     EXTEND FORM doc
         PROPERTIES() ##doc##LotCode DRAW lot TOOLBAR ON CHANGE searchLotCode(l) READONLYIF NOT useLot(product(l));
+END
+
+META defineDocLotGenerate(doc, docLine, item, line, quantity)
+    generateLot 'Сгенерировать' (docLine rl) {
+        FOR Product p = item(rl) DO {
+            FOR iterate(INTEGER i, 1, IF useSerialNumbers(p) THEN quantity##LotLeft(rl) ELSE 1) DO NEW l = Lot {
+                incrementValue(numeratorLot(p));
+                id(l) <- CONCAT '', prefixLot(p), incrementedValue();
+                product(l) <- item(rl);
+                
+                quantity(rl, l) <- 1;
+            }
+        }        
+    }
+    
+    EXTEND FORM doc
+        PROPERTIES(line) generateLot DRAW lot###line SHOWIF numeratorLot(item(l)) AND quantity##LotLeft(line) > 0
+    ;
+END
+
+META defineDocLotGenerate(doc, item, quantity)
+    @defineDocLotGenerate(doc, ###doc##Line, item, l, quantity);
 END

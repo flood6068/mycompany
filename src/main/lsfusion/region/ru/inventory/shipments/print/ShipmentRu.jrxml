@@ -36,17 +36,23 @@
 		</box>
 		<paragraph leftIndent="2" rightIndent="2"/>
 	</style>
+	<parameter name="lot_report" class="net.sf.jasperreports.engine.JasperReport"/>
+	<parameter name="lot_source" class="net.sf.jasperreports.engine.JRDataSource"/>
+	<parameter name="lot_params" class="java.util.Map"/>
 	<field name="o.object" class="java.lang.Long"/>
 	<field name="scheduledDateTime(o)" class="java.util.Date"/>
 	<field name="executionDateTime(o)" class="java.util.Date"/>
 	<field name="number(o)" class="java.lang.String"/>
 	<field name="nameCustomer(o)" class="java.lang.String"/>
-	<field name="addressCustomer(o)" class="java.lang.String"/>
+	<field name="addressLinesCustomer(o)" class="java.lang.String"/>
+	<field name="addressCsvCustomer(o)" class="java.lang.String"/>
 	<field name="phoneCustomer(o)" class="java.lang.String"/>
 	<field name="nameLocation(o)" class="java.lang.String"/>
-	<field name="addressLocation(o)" class="java.lang.String"/>
+	<field name="addressLinesLocation(o)" class="java.lang.String"/>
+	<field name="addressCsvLocation(o)" class="java.lang.String"/>
 	<field name="nameToLocation(o)" class="java.lang.String"/>
-	<field name="addressToLocation(o)" class="java.lang.String"/>
+	<field name="addressLinesToLocation(o)" class="java.lang.String"/>
+	<field name="addressCsvToLocation(o)" class="java.lang.String"/>
 	<field name="performed" class="java.lang.String"/>
 	<field name="order(o)" class="java.lang.String"/>
 	<field name="l.object" class="java.lang.Long"/>
@@ -235,6 +241,17 @@
 				<textElement textAlignment="Center"/>
 				<textFieldExpression><![CDATA[$F{done(l)}]]></textFieldExpression>
 			</textField>
+		</band>
+		<band>
+			<property name="com.jaspersoft.studio.unit.height" value="px"/>
+			<subreport>
+				<reportElement positionType="Float" x="0" y="0" width="0" height="0" uuid="5962ce24-25b5-459a-ad04-cc28d4c7d4b2">
+					<property name="com.jaspersoft.studio.unit.y" value="px"/>
+				</reportElement>
+				<parametersMapExpression><![CDATA[$P{lot_params}]]></parametersMapExpression>
+				<dataSourceExpression><![CDATA[$P{lot_source}]]></dataSourceExpression>
+				<subreportExpression><![CDATA[$P{lot_report}]]></subreportExpression>
+			</subreport>
 		</band>
 	</detail>
 	<summary>

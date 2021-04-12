@@ -43,11 +43,21 @@ DESIGN item {
     }
 }
 
+EXTEND FORM items
+    PROPERTIES(i) GRID READONLYIF isReadonly() weight, volume, nameCountryOrigin
+;
+
+DESIGN items {
+    PROPERTY(weight(i)) { hide = TRUE; }
+    PROPERTY(volume(i)) { hide = TRUE; }
+    PROPERTY(nameCountryOrigin(i)) { hide = TRUE; }
+}
+
 newProduct 'Товар' (Category c) {
     NEWSESSION {
         NEW p = Product {
             category(p) <- c;
-            SHOW item OBJECTS i = p;  
+            DIALOG item OBJECTS i = p DOCKED DO seek(p);
         }
     }
 } IMAGE 'add.png' CHANGEKEY 'INSERT' HIDE;

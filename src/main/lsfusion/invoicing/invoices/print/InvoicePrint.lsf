@@ -4,12 +4,17 @@ REQUIRE Invoice, Product, DocTemplate;
 
 NAMESPACE Invoicing;
 
-addressCompany (Invoice i) = linesAddress(company(i));
+fullNameCompany (Invoice i) = fullName(company(i));
+
+addressLinesCompany (Invoice i) = addressLines(company(i));
+addressCsvCompany (Invoice i) = addressCsv(company(i));
 phoneCompany (Invoice i) = phone(company(i));
 emailCompany (Invoice i) = email(company(i));
 websiteCompany (Invoice i) = website(company(i));
 
-addressCustomer (Invoice i) = linesAddress(customer(i)); 
+fullNameCustomer (Invoice i) = fullName(customer(i));
+
+addressLinesCustomer (Invoice i) = addressLines(customer(i)); 
 phoneCustomer (Invoice i) = phone(customer(i));
 
 nameCountryOrigin (InvoiceLine l) = nameCountryOrigin(item(l));
@@ -28,8 +33,12 @@ printPrice(InvoiceLine l) += price(l);
 FORM printInvoice 'Реализация'
     OBJECTS o = Invoice PANEL 
     PROPERTIES(o) dateTime, dueDateTime, number,
-                  nameCompany, addressCompany, phoneCompany, emailCompany, websiteCompany,
-                  nameCustomer, addressCustomer, phoneCustomer
+                  nameCompany, fullNameCompany, 
+                  addressLinesCompany, addressCsvCompany, 
+                  phoneCompany, emailCompany, websiteCompany,
+                  nameCustomer, fullNameCustomer, 
+                  addressLinesCustomer, addressCsvCustomer, deliveryAddress, 
+                  phoneCustomer
     
     OBJECTS l = InvoiceLine
     PROPERTIES(l) nameItem, idItem, nameUom = namePrintUom,
@@ -40,5 +49,5 @@ FORM printInvoice 'Реализация'
     FILTERS invoice(l) = o
 ;
 
-@defineDocTemplate(invoice, 'реализации');
-@defineDocTemplateForm(invoice, i);
+@defineDocTemplateType(invoice, 'реализации');
+@defineDocTemplateTypeForm(invoice, i);

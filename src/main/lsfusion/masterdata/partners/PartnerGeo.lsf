@@ -11,7 +11,7 @@ EXTEND FORM partner
     PROPERTIES(p) latitude, longitude
     
     OBJECTS pg = Partner MAP
-    PROPERTIES(pg) READONLY name, latitude, longitude
+    PROPERTIES(pg) name READONLY, latitude, longitude
     FILTERS pg = p
 ;
 
@@ -29,3 +29,6 @@ DESIGN partner {
     }
 }
 
+EXTEND FORM partners
+    PROPERTIES(p) READONLYIF isReadonly() latitude, longitude
+;

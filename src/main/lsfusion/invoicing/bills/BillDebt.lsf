@@ -1,6 +1,6 @@
 MODULE BillDebt;
 
-REQUIRE BillDone, BillCanceled, Debt;
+REQUIRE BillDone, BillCanceled, BillContract, BillCurrency, Debt;
 
 NAMESPACE Invoicing;
 
@@ -16,7 +16,10 @@ dueDateTime (Bill b) += dueDateTime(b);
 partner (Bill b) += vendor(b);
 company (Bill b) += company(b);
 
-amount (Bill b) += amount(b);
+contract (Bill b) += contract(b);
+
+sourceCurrency (Bill b) += currency(b);
+sourceAmount (Bill b) += amount(b);
 
 // pay
 pay 'Разнести' (Bill b, OutgoingDebt d) {
@@ -54,5 +57,5 @@ EXTEND FORM bills
 ;
 
 // auto set done
-WHEN SET(amount(Bill b) = paid(b)) DO done(b) <- TRUE;
-WHEN DROPPED(amount(Bill b) = paid(b)) DO done(b) <- NULL;
+WHEN SET(amount[Debt](Bill b) = paid(b)) DO done(b) <- TRUE;
+WHEN DROPPED(amount[Debt](Bill b) = paid(b)) DO done(b) <- NULL;

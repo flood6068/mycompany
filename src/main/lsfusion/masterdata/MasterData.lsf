@@ -1,8 +1,10 @@
 MODULE MasterDataP;
 
 REQUIRE MetaNumerator, PartnerGeo, 
-        Individual, IndividualImport, Employee,
-        LegalEntity, LegalEntityImport,  
+        Individual, IndividualImport, IndividualInitial, Employee,
+        LegalEntity, LegalEntityImport,
+        Contract, ContractPartner, ContractImport,
+        Department, DepartmentPartner,  
         Company, CompanyInitial,
         Category, CategoryImport, CategoryImage, 
         ServiceP, ServiceImport, 
@@ -15,6 +17,7 @@ REQUIRE MetaNumerator, PartnerGeo,
         Uom, UomImport, 
         ItemUom, ItemUomImport, 
         BarCode, BarCodeHistory, BarCodeImport,
+        Currency, CurrencyImport, ExchangeRate, 
         CountryP, CountryImport;
 
 NAMESPACE MasterData;

@@ -19,15 +19,15 @@ scheduledDateTime 'Дата начала' = DATA DATETIME (ManufacturingOrder);
 scheduledDateTime(ManufacturingOrder o) <- currentDateTime() WHEN SET(o IS ManufacturingOrder);
 @defineDateTimeAggregation(ManufacturingOrder, scheduled, ' начала');
 
-@defineNumber(manufacturingOrder, 'Производственные заказы', 'ПРЗ');
+@defineNumberType(ManufacturingOrder);
 
 numberDate 'Описание' (ManufacturingOrder o) = number(o) + ' от ' + scheduledDateTime(o) IN id;
 
-item 'Номенклатура' = DATA Item (ManufacturingOrder) NONULL;
-nameItem 'Номенклатура' (ManufacturingOrder m) = name(item(m));
+item '{Item}' = DATA Item (ManufacturingOrder) NONULL;
+nameItem '{Item}' (ManufacturingOrder m) = name(item(m));
 
 uom (ManufacturingOrder o) = uom(item(o));
-nameUom 'Ед .изм.' (ManufacturingOrder m) = name(uom(m));
+nameUom 'Ед. изм.' (ManufacturingOrder m) = name(uom(m));
 
 // bom
 bom 'Спецификация' = DATA Bom (ManufacturingOrder) NONULL;
@@ -57,8 +57,8 @@ manufacturingOrder = DATA ManufacturingOrder (ConsumedLine) NONULL DELETE;
 countConsumedLine 'Строк материалов' (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m MATERIALIZED;
 index '№' = PARTITION SUM 1 ORDER ConsumedLine l BY manufacturingOrder(l) IN id MATERIALIZED CHARWIDTH 3;
 
-item 'Номенклатура' = DATA Item (ConsumedLine);
-nameItem 'Номенклатура' (ConsumedLine l) = name(item(l));
+item '{Item}' = DATA Item (ConsumedLine);
+nameItem '{Item}' (ConsumedLine l) = name(item(l));
 idBarCodeItem 'Штрихкод' (ConsumedLine l) = idBarCode(item(l));
 idItem 'Код' (ConsumedLine l) = id(item(l));
 
@@ -77,8 +77,8 @@ manufacturingOrder = DATA ManufacturingOrder (FinishedLine) NONULL DELETE;
 countFinishedLine 'Строк продукции' (ManufacturingOrder m) = GROUP SUM 1 IF manufacturingOrder(ConsumedLine l) = m MATERIALIZED;
 index '№' = PARTITION SUM 1 ORDER FinishedLine l BY manufacturingOrder(l) IN id MATERIALIZED CHARWIDTH 3;
 
-item 'Номенклатура' = DATA Item (FinishedLine);
-nameItem 'Номенклатура' (FinishedLine l) = name(item(l));
+item '{Item}' = DATA Item (FinishedLine);
+nameItem '{Item}' (FinishedLine l) = name(item(l));
 idBarCodeItem 'Штрихкод' (FinishedLine l) = idBarCode(item(l));
 idItem 'Код' (FinishedLine l) = id(item(l));
 
@@ -134,7 +134,7 @@ DESIGN manufacturingOrder {
             alignment = STRETCH;
             type = CONTAINERH;
             NEW headerLeft {
-                MOVE PROPERTY(nameType(o));
+                MOVE PROPERTY(nameType(o)) { notNull = TRUE; };
                 MOVE PROPERTY(scheduledDateTime(o));
                 MOVE PROPERTY(number(o)) { notNull = TRUE; }
                 MOVE PROPERTY(nameCompany(o));
@@ -156,15 +156,31 @@ DESIGN manufacturingOrder {
             NEW consumed {
                 caption = 'Материалы';
                 MOVE PROPERTY(nameMaterialsLocation(o));
-                MOVE BOX(c);
+                NEW consumedPane {
+                    type = SPLITH;
+                    fill = 1; 
+                    MOVE BOX(c);
+                    NEW consumedLinesTab {
+                        fill = 0.3;
+                        type = TABBED;
+                    }
+                }
             }
             NEW finished {
                 caption = 'Продукция';
                 NEW finishedHeader { 
                     type = CONTAINERH;
                     alignment = STRETCH; 
-                } 
-                MOVE BOX(l);
+                }
+                NEW finishedPane {
+                    type = SPLITH;
+                    fill = 1; 
+                    MOVE BOX(l);
+                    NEW finishedLinesTab {
+                        fill = 0.3;
+                        type = TABBED;
+                    }
+                }
             }
         }   
     }
@@ -175,11 +191,11 @@ DESIGN manufacturingOrder {
     }
 }
 
-background (ManufacturingOrder o) = ABSTRACT CASE COLOR (ManufacturingOrder);
+background = ABSTRACT CASE COLOR (ManufacturingOrder);
 
 FORM manufacturingOrders 'Производственные заказы'
-    OBJECTS o = ManufacturingOrder
-    PROPERTIES(o) READONLYIF isReadonly() BACKGROUND background(o)
+    OBJECTS o = ManufacturingOrder BACKGROUND background(o)
+    PROPERTIES(o) READONLYIF isReadonly()
                            nameType, scheduledDateTime, number, nameCompany, 
                            nameItem, unbuild READONLY, 
                            toManufacture READONLY, nameUom READONLY, 

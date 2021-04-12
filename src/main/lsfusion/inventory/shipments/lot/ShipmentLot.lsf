@@ -8,12 +8,12 @@ NAMESPACE Inventory;
 
 @defineDocBarCodeLot (shipment, product, done);
 
-@defineDocDesignLotTab(shipment, done);
+@defineDocDesignLotTab(shipment, done, product, linesTab);
        
-onHandLast 'Доступный остаток' (ShipmentLine sl, Lot l) = PREV(onHand(location(shipment(sl)), l));
+onHandLast 'Остаток' (ShipmentLine sl, Lot l) = PREV(onHand(location(shipment(sl)), l));
 
 EXTEND FORM shipment 
-    PROPERTIES (l, lot) BEFORE done(l, lot) onHandLast READONLY;
+    PROPERTIES (l, lotL) BEFORE done(l, lotL) onHandLast READONLY;
 
 //ledger
 quantity(ShipmentInvLedger sl, Lot l) += done(line(sl), l);

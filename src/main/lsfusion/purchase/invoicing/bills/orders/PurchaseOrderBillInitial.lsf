@@ -5,6 +5,5 @@ REQUIRE PurchaseOrderBill;
 NAMESPACE Purchase;
 
 loadDefaultData () + {
-    billType(OrderType t) <- billType('wholesale') WHERE id(t) = 'vendor'; 
-    invoicingPolicy(OrderType t) <- InvoicingPolicy.ordered;
+    billType(OrderType t) <- billType('bill') WHERE id(t) = 'order'; 
 }

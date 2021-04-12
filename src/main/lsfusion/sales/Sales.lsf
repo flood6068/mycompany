@@ -1,10 +1,12 @@
 MODULE Sales;
 
 REQUIRE SalesSettings, 
-        SalesOrder, SalesOrderSent, SalesOrderConfirmed, SalesOrderCanceled, SalesOrderLocked, 
+        SalesOrder, SalesOrderFilter, SalesOrderSelection, 
+        SalesOrderSent, SalesOrderConfirmed, SalesOrderCanceled, SalesOrderLocked, 
         SalesOrderSearch, SalesOrderPrint, SalesOrderPartner, SalesOrderItem, SalesOrderDebt, SalesOrderInitial,
         SalesOrderPack, SalesOrderGeo,
-        SalesOrderInvoice, SalesOrderInvoiceShipment, SalesOrderInvoiceInitial,
+        SalesOrderInvoice, SalesOrderInvoiceInitial,
+        SalesOrderInvoiceShipment, SalesOrderInvoiceShipmentInitial,
         SalesOrderShipment, SalesOrderShipmentInitial, SalesOrderManufacturing,
         SalesPriceType, SalesPriceTypeMarkup, SalesPriceTypeInitial,
         SalesPricelist, SalesPricelistDone, SalesPricelistChange,

@@ -19,6 +19,10 @@ META defineDocObjectsForm (form, obj, title)
                     NEW filters {
                         caption = 'Фильтры';
                         alignment = STRETCH;
+                        MOVE FILTERGROUPS(obj) {
+                            type = CONTAINERV;
+                            alignment = STRETCH;
+                        }
                     }
                     NEW actions {
                         alignment = STRETCH;
@@ -53,10 +57,14 @@ END
 
 META defineDocStatusForm (doc, let)
     EXTEND FORM doc##s
-        PROPERTIES(##let) READONLY nameStatus BACKGROUND colorStatus(##let) BEFORE number(##let)
+        PROPERTIES(##let) READONLY nameStatus BACKGROUND colorStatus(##let) FIRST
         FILTERGROUP status
             FILTER 'Черновик' status(##let) = ###doc##Status.draft
     ;
+    
+    DESIGN doc##s {
+        FILTERGROUP(status) { alignment = STRETCH; }
+    }
     
     EXTEND FORM doc
         PROPERTIES(##let) nameStatus BACKGROUND colorStatus(##let)
@@ -85,20 +93,20 @@ META defineDocStatusForm (doc, let)
     } 
 END
 
-META defineDocSearchAction (doc, it, fun, capt)
+META defineDocSearchAction (doc, docLine, it, fun, capt)
     fun capt (###doc i, ###it p) = 
-        GROUP SUM fun(###doc##Line l) BY doc(l), it(l);
+        GROUP SUM fun(docLine l) BY doc(l), it(l);
     
     set###fun (###doc i, ###it p, NUMERIC[14,3] q) {
-        IF last###doc##Line(i, p) THEN {
+        IF last##docLine(i, p) THEN {
             IF q THEN
-                fun(###doc##Line l) <- q IF l = last###doc##Line(i, p)
+                fun(docLine l) <- q IF l = last##docLine(i, p)
                     WHERE doc(l) = i AND it(l) = p;
             ELSE
-                DELETE ###doc##Line l WHERE doc(l) = i AND it(l) = p;
+                DELETE docLine l WHERE doc(l) = i AND it(l) = p;
         } ELSE
             IF q THEN
-                NEW l = ###doc##Line{
+                NEW l = docLine{
                     doc(l) <- i;
                     it(l) <- p;
                     fun(l) <- q;
@@ -110,6 +118,10 @@ META defineDocSearchAction (doc, it, fun, capt)
         INPUT q = NUMERIC[14,3] DO
             set###fun(i, p, q);
     }
+END
+
+META defineDocSearchAction (doc, it, fun, capt)
+    @defineDocSearchAction (doc, ###doc##Line, it, fun, capt);
 END
 
 META defineDocSearchTab (doc, it)
@@ -150,7 +162,10 @@ META defineDocSearch (doc, it, fun, capt, let)
     
     EXTEND FORM doc
         PROPERTIES(let, itm) fun ON CHANGE change###fun(let, itm)
-    ;        
+    ;
+    DESIGN doc {
+        PROPERTY(fun(let, itm)) { background = #EEEEFF; }
+    }        
 END
 
 META defineDocSearch (doc, it, fun, capt, let, check)
@@ -368,18 +383,18 @@ META defineDocLinesCount(doc, d)
 END
 
 META defineDocFilter(doc, cls, property, obj, caption)
-    property = DATA LOCAL NESTED cls ();
-    name###property caption = name(property());
+    doc###property = DATA LOCAL NESTED cls ();
+    name###doc###property caption = name(doc###property());
 
     EXTEND FORM doc##s 
-        PROPERTIES() name###property
+        PROPERTIES() name###doc###property
         
-        FILTERS property(obj) = property() OR NOT property()
+        FILTERS property(obj) = doc###property() OR NOT doc###property()
     ;
     
     DESIGN doc##s {
         filters {
-            MOVE PROPERTY(name###property());
+            MOVE PROPERTY(name###doc###property());
         }
     }
 

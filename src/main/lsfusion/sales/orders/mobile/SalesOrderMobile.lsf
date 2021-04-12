@@ -28,7 +28,7 @@ FORM orderMobile 'Заказ мобильный'
                   'В месте' = packRatio READONLY
     PROPERTIES(l) PANEL nameSalesDiscount, '' = discount, '' = discountPrice
     PROPERTIES(l) PANEL READONLY idItem, idBarCodeItem,
-                                 nameUom, taxes, 'Сумма' = amount
+                                 nameUom, taxes, '{Amount}' = amount
     FILTERS order(l) = o
 ;
 
@@ -115,7 +115,7 @@ DESIGN orderMobile {
 newMobile 'Добавить' () {
     NEWSESSION {
         NEW o = Order {
-            SHOW orderMobile OBJECTS o = o DOCKED;
+            DIALOG orderMobile OBJECTS o = o DOCKED DO seek(o);
         }
     }
 } IMAGE 'add.png';

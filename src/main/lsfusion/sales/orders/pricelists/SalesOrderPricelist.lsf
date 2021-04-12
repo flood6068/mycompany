@@ -37,16 +37,18 @@ EXTEND FORM order
 ;
 
 DESIGN order {
-    headerRight {
+    headerLeft {
         MOVE PROPERTY(namePriceType(o)); 
     }
 }
 
 // price
-listPrice (OrderLine l) = overPriceA(priceType(order(l)), item(l), dateTime(order(l)));  
+listPrice (OrderLine l) = 
+    NUMERIC[10,2](overPriceA(priceType(order(l)), item(l), dateTime(l)) * 
+                  rate1((OVERRIDE currency(l), defaultCurrency()), currency(priceType(order(l))), date(l)));  
 defaultPrice (OrderLine l) += WHEN listPrice(l) THEN listPrice(l);
                                     
-WHEN LOCAL (SETCHANGED(priceType(order(OrderLine l))) OR
+WHEN LOCAL (SETCHANGED(priceType(order(OrderLine l))) OR SETCHANGED(currency(order(l))) OR
             (SETCHANGED(dateTime(order(l))) AND status(order(l)) = OrderStatus.draft)) 
             AND NOT CHANGED(price(l)) DO {
     price(l) <- defaultPrice(l); 
@@ -59,5 +61,5 @@ EXTEND FORM order
     PROPERTIES(o, itm) READONLY overListPrice
 
     FILTERGROUP pricelist
-        FILTER 'С ценой' overListPrice(o, itm)
+        FILTER 'В прайс-листе' overListPrice(o, itm)
 ;

@@ -48,8 +48,8 @@ hierarchyCity (Location l) = GROUP LAST city(Location parent) ORDER DESC level(l
 hierarchyState  (Location l) = GROUP LAST state(Location parent) ORDER DESC level(l,parent);
 hierarchyZip  (Location l) = GROUP LAST zip(Location parent) ORDER DESC level(l,parent);
 
-csvAddress 'Адрес' (Location l) = CONCAT ', ', hierarchyAddress(l), hierarchyCity(l), hierarchyState(l), hierarchyZip(l);
-linesAddress 'Адрес' (Location l) = CONCAT '\n', hierarchyAddress(l), hierarchyCity(l), hierarchyState(l), hierarchyZip(l);
+addressCsv 'Адрес' (Location l) = CONCAT ', ', hierarchyAddress(l), hierarchyCity(l), hierarchyState(l), hierarchyZip(l);
+addressLines 'Адрес' (Location l) = CONCAT '\n', hierarchyAddress(l), hierarchyCity(l), hierarchyState(l), hierarchyZip(l);
   
 FORM location 'Место хранения'
     OBJECTS l = Location PANEL
@@ -92,9 +92,8 @@ DESIGN location {
 
 background (Location l) = ABSTRACT CASE COLOR (Location);
 FORM locations 'Места хранения'
-    OBJECTS l = Location
-    PROPERTIES(l) READONLY BACKGROUND background(l)
-                           name, id, 
+    OBJECTS l = Location BACKGROUND background(l)
+    PROPERTIES(l) READONLY name, id, 
                            canonicalNameParent, nameCompany,
                            address, city, state, zip
     PROPERTIES(l) NEWSESSION NEW, EDIT, DELETE

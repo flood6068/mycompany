@@ -39,3 +39,9 @@ EXTEND FORM orders
     FILTERGROUP unlocked
         FILTER 'Открыт' NOT locked(o) DEFAULT    
 ;
+
+DESIGN orders {
+    FILTERGROUP(unlocked) { alignment = STRETCH; }
+}
+
+@defineSelectionAction(orders, Order, lock, 'Закрыть', statuses);

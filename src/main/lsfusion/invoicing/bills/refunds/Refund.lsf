@@ -9,13 +9,14 @@ isRefund 'Возврат' = DATA BOOLEAN (InvoiceType);
 EXTEND FORM invoiceType PROPERTIES(o) isRefund;
 
 isRefund (Invoice i) = isRefund(type(i));
+isCustomer(Invoice i) += isRefund(i) AND isVendor(customer(i));
 
 invoiceType = DATA InvoiceType (BillType);
 nameInvoiceType 'Тип возврата' (BillType t) = name(invoiceType(t));
 EXTEND FORM billType PROPERTIES(o) nameInvoiceType;
 
 // lines
-@defineDocLineRelation(bill, invoice, 'Приобретения', 'Возвраты', b, i);
+@defineDocLineRelation(bill, invoice, 'Поступления', 'Возвраты', b, i);
 
 numberBillLine 'Реализация' (InvoiceLine l) = number(billLine(l)); 
 
@@ -36,8 +37,9 @@ EXTEND FORM invoice
 ;
 
 // add
-fill ABSTRACT (InvoiceLine, BillLine);
-fill ABSTRACT (Invoice, Bill);
+fill ABSTRACT LIST (InvoiceLine, BillLine);
+fill ABSTRACT LIST (Invoice, Bill);
+
 addRefund 'Вернуть' (Bill b) {
     APPLY; 
     IF canceled() THEN RETURN;

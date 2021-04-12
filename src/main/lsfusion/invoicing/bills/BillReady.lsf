@@ -1,6 +1,6 @@
 MODULE BillReady;
 
-REQUIRE Bill;
+REQUIRE Bill, BillSelection;
 
 NAMESPACE Invoicing;
 
@@ -14,12 +14,12 @@ colorStatus(Bill b) += WHEN status(b) = BillStatus.ready THEN RGB(252,247,149);
 
 markAsToDo 'В работу' (Bill b) {
     APPLY; 
-        IF canceled() THEN RETURN;
+    IF canceled() THEN RETURN;
         
-        NEWSESSION {
-            ready(b) <- TRUE;
-            APPLY;
-        }
+    NEWSESSION {
+        ready(b) <- TRUE;
+        APPLY;
+    }
 }
 
 EXTEND FORM bill
@@ -37,5 +37,7 @@ DESIGN bill {
 
 EXTEND FORM bills    
     EXTEND FILTERGROUP status
-        FILTER 'К отгрузке' status(b) = BillStatus.ready    
+        FILTER 'В работе' status(b) = BillStatus.ready    
 ;
+
+@defineSelectionAction(bills, Bill, markAsToDo, 'В работу', statuses);

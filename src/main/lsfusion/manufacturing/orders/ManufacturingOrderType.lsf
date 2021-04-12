@@ -9,14 +9,17 @@ CLASS ManufacturingOrderType 'Тип производственного зака
 name 'Название' = DATA STRING[50] (ManufacturingOrderType) NONULL IN id;
 id 'Код'= DATA STRING[20] (ManufacturingOrderType);
 
-materialsLocation 'Списывать из' = DATA Location (ManufacturingOrderType);
-nameMaterialsLocation 'Списывать из' (ManufacturingOrderType t) = name(materialsLocation(t)); 
+numerator 'Нумератор' = DATA Numerator (ManufacturingOrderType);
+nameNumerator 'Нумератор' (ManufacturingOrderType o) = name(numerator(o));
+
+materialsLocation 'Списать из' = DATA Location (ManufacturingOrderType);
+nameMaterialsLocation 'Списать из' (ManufacturingOrderType t) = name(materialsLocation(t)); 
 
 unbuild 'Разборка' = DATA BOOLEAN (ManufacturingOrderType);
 
 FORM manufacturingOrderType 'Тип производственного заказа'
     OBJECTS o = ManufacturingOrderType PANEL 
-    PROPERTIES(o) name, id, unbuild, nameMaterialsLocation
+    PROPERTIES(o) name, id, nameNumerator, unbuild, nameMaterialsLocation
      
     EDIT ManufacturingOrderType OBJECT o;
 ;

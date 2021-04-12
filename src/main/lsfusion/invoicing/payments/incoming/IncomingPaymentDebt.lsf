@@ -1,6 +1,6 @@
 MODULE IncomingPaymentDebt;
 
-REQUIRE IncomingPaymentCanceled, Debt;
+REQUIRE IncomingPaymentCanceled, IncomingPaymentContract, IncomingPaymentCurrency, Debt;
 
 NAMESPACE Invoicing;
 
@@ -15,7 +15,10 @@ dateTime (IncomingPayment p) += dateTime(p);
 partner (IncomingPayment p) += partner(p);
 company (IncomingPayment p) += company(p);
 
-amount (IncomingPayment p) += amount(p);
+contract (IncomingPayment p) += contract(p);
+
+sourceCurrency (IncomingPayment p) += currency(p);
+sourceAmount (IncomingPayment p) += amount(p);
 
 // pay
 pay 'Разнести' (IncomingPayment p, OutgoingDebt d) {

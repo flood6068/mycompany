@@ -9,19 +9,20 @@ isReturn 'Возврат' = DATA BOOLEAN (ShipmentType);
 EXTEND FORM shipmentType PROPERTIES(o) isReturn;
 
 isReturn (Shipment s) = isReturn(type(s));
+isCustomer(Shipment s) += isReturn(s) AND isVendor(customer(s));
 
 shipmentType = DATA ShipmentType (ReceiptType);
 nameShipmentType 'Тип возврата' (ReceiptType t) = name(shipmentType(t));
 EXTEND FORM receiptType PROPERTIES(o) nameShipmentType;
 
 // line
-@defineDocLineRelation (receipt, shipment, 'Поступление', 'Отгрузка', r, s);
+@defineDocLineRelation (receipt, shipment, 'Приемка', 'Отгрузка', r, s);
 
 CONSTRAINT receiptLine(ShipmentLine l) AND NOT 
                 (vendor(receiptLine(l)) = customer(l) AND 
                  product(receiptLine(l)) = product(l))
     CHECKED BY receiptLine
-    MESSAGE 'Контрагент и товар поступления должны совпадать с контрагентом и товаром возврата';
+    MESSAGE 'Контрагент и товар приемки должны совпадать с контрагентом и товаром возврата';
     
 EXTEND FORM shipment
     PROPERTIES(l) numberDateReceiptLine SHOWIF isReturn(s)

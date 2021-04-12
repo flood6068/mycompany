@@ -1,7 +1,7 @@
 MODULE Invoice;
 
 REQUIRE InvoicingSettings, TaxItem, BankAccount, 
-        MetaTax, PaymentTermsSales, DateUtils,
+        MetaTax, PaymentTermsSales, DateUtils, Department,
         ItemSales, PartnerSales, Company, 
         BarCode, MetaNumerator, Doc,
         InvoiceType, Product;
@@ -29,10 +29,18 @@ numberDate 'Описание' (Invoice i) = number(i) + ' от ' + dateTime(i) I
 
 // customer
 customer = DATA Partner (Invoice);
-nameCustomer 'Покупатель' (Invoice b) = name(customer(b));
-CONSTRAINT customer(Invoice b) AND NOT isCustomer(customer(b)) 
-                CHECKED BY customer
+nameCustomer 'Покупатель' (Invoice i) = name(customer(i));
+addressCsvCustomer 'Адрес покупателя' (Invoice i) = addressCsv(customer(i));
+
+WHEN LOCAL SETCHANGED(type(Invoice i)) AND customer(type(i)) AND NOT CHANGED(customer(i)) DO customer(i) <- customer(type(i));  
+
+isCustomer = ABSTRACT VALUE BOOLEAN (Invoice);
+isCustomer(Invoice i) += isCustomer(customer(i));
+CONSTRAINT customer(Invoice i) AND NOT isCustomer(i) 
+                CHECKED BY customer[Invoice]
                 MESSAGE 'Контрагент должен быть покупателем';
+
+@defineDocDepartment(invoice, customer);
 
 // company
 company 'Компания' = DATA Company (Invoice) NONULL;
@@ -69,6 +77,10 @@ CONSTRAINT companyAccount(Invoice b) AND NOT company(b) = holder(companyAccount(
     CHECKED BY companyAccount
     MESSAGE 'Счет должен принадлежать выбранной компании';
 
+deliveryAddress 'Адрес доставки' = DATA STRING (Invoice) CHARWIDTH 20;
+WHEN LOCAL (CHANGED(customer(Invoice i)) OR CHANGED(department(i))) AND NOT CHANGED(deliveryAddress(i)) DO 
+    deliveryAddress(i) <- OVERRIDE addressCsv(department(i)), addressCsvCustomer(i);
+
 customerReference 'Код покупателя' = DATA STRING[30] (Invoice);
 note 'Примечание' = DATA ISTRING[50] (Invoice);
 
@@ -79,8 +91,8 @@ invoice 'Реализация' = DATA Invoice (InvoiceLine) NONULL DELETE;
 
 index '№' = PARTITION SUM 1 ORDER InvoiceLine l BY invoice(l) IN id MATERIALIZED CHARWIDTH 3;
 
-item 'Номенклатура' = DATA Item (InvoiceLine) NONULL;
-nameItem 'Номенклатура' (InvoiceLine l) = name(item(l)) IN id;
+item '{Item}' = DATA Item (InvoiceLine) NONULL;
+nameItem '{Item}' (InvoiceLine l) = name(item(l)) IN id;
 idBarCodeItem 'Штрихкод' (InvoiceLine l) = idBarCode(item(l));
 idItem 'Код' (InvoiceLine l) = id(item(l));
 
@@ -118,6 +130,7 @@ type (InvoiceLine l) = type(invoice(l));
 number 'Номер' (InvoiceLine l) = number(invoice(l));
 numberDate 'Описание' (InvoiceLine l) = numberDate(invoice(l));
 dateTime 'Дата' (InvoiceLine l) = dateTime(invoice(l));
+date 'Дата' (InvoiceLine l) = date(invoice(l));
 customer (InvoiceLine l) = customer(invoice(l));
 nameCustomer 'Покупатель' (InvoiceLine l) = nameCustomer(invoice(l));
 nameCompany 'Компания' (InvoiceLine l) = nameCompany(invoice(l));
@@ -134,9 +147,10 @@ edit (InvoiceLine l) + { edit(invoice(l)); }
 
 FORM invoice 'Реализация'
     OBJECTS  i = Invoice PANEL 
-    PROPERTIES(i) nameType, dateTime, number, nameCustomer, nameCompany,
+    PROPERTIES(i) nameType, dateTime, number, 
+                  nameCustomer, nameDepartment SHOWIF countDepartment(customer(i)), nameCompany,
                   namePaymentTerms, dueDateTime, nameCustomerAccount, nameCompanyAccount,
-                  customerReference, note
+                  deliveryAddress, customerReference, note
         
     OBJECTS l = InvoiceLine
     PROPERTIES(l) index, nameItem, description, nameUom, idBarCodeItem, idItem, 
@@ -159,6 +173,7 @@ DESIGN invoice {
             }
             NEW headerRight {
                 MOVE PROPERTY(nameCustomer(i));
+                MOVE PROPERTY(nameDepartment(i));
                 MOVE PROPERTY(nameCompany(i)) { notNull = TRUE; }           
             }
             NEW relatedDoc {
@@ -191,6 +206,10 @@ DESIGN invoice {
                     MOVE PROPERTY(dueDateTime(i)); 
                     MOVE PROPERTY(nameCompanyAccount(i));
                     MOVE PROPERTY(nameCustomerAccount(i));              
+                }
+                NEW shippingInformation {
+                    caption = 'Доставка';
+                    MOVE PROPERTY(deliveryAddress(i));
                 }           
                 NEW invoiceInformat {
                     caption = 'Прочие';
@@ -210,13 +229,15 @@ DESIGN invoice {
 
 @defineDocHistory(invoice, i, item, quantity);
 @defineDocSearch(invoice, item, quantity, 'Кол-во', i, canBeSold);
-@defineBarCodeSearch(invoice, i, l, item, quantity);
+@defineBarCodeSearch(invoice, i, l, quantity);
 
 @defineDocDiscountForm(invoice);
 
+background = ABSTRACT CASE COLOR (Invoice);
 FORM invoices 'Реализации'
-    OBJECTS i = Invoice
-    PROPERTIES(i) READONLY nameType, dateTime, number, nameCustomer, nameCompany,
+    OBJECTS i = Invoice BACKGROUND background(i)
+    PROPERTIES(i) READONLYIF isReadonly()
+                           nameType, dateTime, number, nameCustomer, nameCompany,
                            namePaymentTerms, dueDateTime, nameCustomerAccount, nameCompanyAccount,
                            customerReference, note         
     PROPERTIES(i) NEWSESSION NEW, EDIT, DELETE
@@ -224,10 +245,12 @@ FORM invoices 'Реализации'
     LIST Invoice OBJECT i
 ;
 
-@defineTaxForm(invoice, i);
+@extendFormEditable(invoices);
+
+@defineDocObjectsForm(invoices, i, 'Реализации');
+@defineDocTaxForm(invoice, i);
 @defineDocStatusForm(invoice, i);
 @defineDocLinesCount(invoice, i);
-@defineDateFilterForm(invoices, i);
 
 NAVIGATOR {
     operations {
@@ -236,22 +259,28 @@ NAVIGATOR {
 }
 
 // copy
-copy 'Копировать' (Invoice i)  { 
+clone ABSTRACT LIST (Invoice, Invoice);
+clone (Invoice to, Invoice from) + {
+    type(to) <- type(from);
+    customer(to) <- customer(from);
+    note(to) <- note(from);
+    FOR invoice(InvoiceLine l) = from INLINE NEW nl = InvoiceLine DO {
+        invoice(nl) <- to;
+        item(nl) <- item(l);
+        
+        quantity(nl) <- quantity(l);
+        
+        price(nl) <- price(l);
+        discount(nl) <- discount(l);
+        discountPrice(nl) <- discountPrice(l);
+    }
+}
+
+copy 'Копировать' (Invoice from)  { 
     NEWSESSION {
-        NEW ni = Invoice {
-            customer(ni) <- customer(i);
-            note(ni) <- note(i);
-            FOR invoice(InvoiceLine l) = i INLINE NEW nl = InvoiceLine DO {
-                invoice(nl) <- ni;
-                item(nl) <- item(l);
-                
-                quantity(nl) <- quantity(l);
-                
-                price(nl) <- price(l);
-                discount(nl) <- discount(l);
-                discountPrice(nl) <- discountPrice(l);
-            }
-            SHOW invoice OBJECTS i = ni DOCKED;
+        NEW to = Invoice {
+            clone(to, from);
+            SHOW invoice OBJECTS i = to DOCKED;
         }
     }
 }

@@ -37,8 +37,12 @@ invoiceShipmentCreated = DATA LOCAL Shipment ();
 newShipment (Invoice i) {
     NEW r = Shipment { 
         customer(r) <- customer(i);
+        department(r) <- department(i);
+
         type(r) <- shipmentType(type(i));
         location(r) <- location(i);
+        
+        deliveryAddress(r) <- deliveryAddress(i);
 
         immediate(r) <- TRUE;
         done(r) <- TRUE;    
@@ -55,7 +59,7 @@ newShipment (Invoice i) {
     }
 }
 
-createShipment 'Отгрузить' (Invoice b) {
+createShipment 'Создать отгрузку' (Invoice b) {
     APPLY;
     IF canceled() THEN RETURN;
     
@@ -86,14 +90,20 @@ DESIGN invoice {
     }
 }
 
+clone (Invoice to, Invoice from) + {
+    location(to) <- location(from);
+}
+
 // auto create
 autoCreateShipment 'Автоматически создавать отгрузку' = DATA BOOLEAN (InvoiceType);
 EXTEND FORM invoiceType PROPERTIES autoCreateShipment(o) SHOWIF shipmentType(o);
 
-WHEN (SET(ready(Invoice i)) OR SET(countProductLines(i))) AND autoCreateShipment(type(i)) AND countProductLines(i) DO 
+WHEN (SET(ready(Invoice i)) OR SET(countProductLines(i))) AND ready(i) AND autoCreateShipment(type(i)) AND countProductLines(i) DO 
     newShipment(i);
 WHEN SET(canceled(Invoice i)) AND in(i, Shipment s) AND countInvoice(s) = 1 AND autoCreateShipment(type(i)) DO 
     canceled(s) <- TRUE; 
+WHEN CHANGED(customer(Invoice i)) AND in(i, Shipment s) AND countInvoice(s) = 1 AND autoCreateShipment(type(i)) DO 
+    customer(s) <- customer(i); 
 WHEN CHANGED(quantity(invoiceLine(ShipmentLine l))) AND autoCreateShipment(type(invoice(invoiceLine(l)))) DO 
     done(l) <- quantity(invoiceLine(l));
 WHEN CHANGED(item(invoiceLine(ShipmentLine l))) AND autoCreateShipment(type(invoice(invoiceLine(l)))) DO 

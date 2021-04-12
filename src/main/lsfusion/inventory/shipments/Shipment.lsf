@@ -1,7 +1,7 @@
 MODULE Shipment;
 
 REQUIRE System, Time, DateUtils,
-        InventorySettings, LocationEmployee, Partner, Product,
+        InventorySettings, LocationEmployee, Partner, Product, Department,
         ShipmentType, ItemSales, PartnerSales, BarCode, Doc, ResLedger;
 
 NAMESPACE Inventory;
@@ -31,6 +31,8 @@ location 'Место хранения (откуда)' = DATA Location (Shipment)
 nameLocation 'Место хранения (откуда)' (Shipment s) = name(location(s));
 WHEN LOCAL SETCHANGED(type(Shipment s)) AND defaultLocation(type(s)) AND NOT CHANGED(location(s)) DO location(s) <- defaultLocation(type(s));  
 
+company 'Компания' (Shipment s) = company(location(s));
+
 toLocation 'Место хранения (куда)' = DATA Location (Shipment);
 nameToLocation 'Место хранения (куда)' (Shipment s) = name(toLocation(s));
 WHEN LOCAL SETCHANGED(type(Shipment s)) AND defaultToLocation(type(s)) AND NOT CHANGED(toLocation(s)) DO toLocation(s) <- defaultToLocation(type(s));  
@@ -46,10 +48,19 @@ CONSTRAINT isTransfer(type(Shipment s)) AND NOT toLocation(s) MESSAGE 'Не за
 // customer
 customer = DATA Partner (Shipment) INDEXED;
 nameCustomer 'Покупатель' (Shipment s) = name(customer(s));
+addressCsvCustomer 'Адрес покупателя' (Shipment s) = addressCsv(customer(s)); 
 
-CONSTRAINT customer(Shipment s) AND NOT isCustomer(customer(s)) 
+isCustomer = ABSTRACT VALUE BOOLEAN (Shipment);
+isCustomer(Shipment s) += isCustomer(customer(s));
+CONSTRAINT customer(Shipment s) AND NOT isCustomer(s) 
                 CHECKED BY customer[Shipment]
                 MESSAGE 'Контрагент должен быть покупателем';
+
+@defineDocDepartment(shipment, customer);
+
+deliveryAddress 'Адрес доставки' = DATA STRING (Shipment) CHARWIDTH 20;
+WHEN LOCAL (CHANGED(customer(Shipment s)) OR SETCHANGED(department(s))) AND NOT CHANGED(deliveryAddress(s)) DO 
+    deliveryAddress(s) <- OVERRIDE addressCsv(department(s)), addressCsvCustomer(s);
 
 note 'Примечание' = DATA ISTRING[50] (Shipment);
 
@@ -73,7 +84,7 @@ CONSTRAINT product(ShipmentLine l) AND NOT canBeSold(product(l))
 uom (ShipmentLine l) = uom(product(l));
 nameUom 'Ед. изм.' (ShipmentLine l) = name(uom(l));
 
-initialDemand 'Планируемое количество' = DATA NUMERIC[16,3] (ShipmentLine);
+initialDemand 'Планируемое кол-во' = DATA NUMERIC[16,3] (ShipmentLine);
 
 CONSTRAINT initialDemand(ShipmentLine l) < 0 OR initialDemand(l) > maxQuantity(type(shipment(l))) AND maxQuantity(type(shipment(l))) 
     MESSAGE 'Исходное количество должно быть от 0 до максимально разрешенного';
@@ -100,8 +111,9 @@ edit (ShipmentLine l) + { edit(shipment(l)); }
 FORM shipment 'Отгрузка'
     OBJECTS s = Shipment PANEL 
     PROPERTIES(s) nameType, scheduledDateTime, number, 
-                  nameCustomer SHOWIF NOT isTransfer(type(s)), nameLocation, nameToLocation SHOWIF isTransfer(type(s)), 
-                  note
+                  nameCustomer SHOWIF NOT isTransfer(type(s)), nameDepartment SHOWIF countDepartment(customer(s)), 
+                  nameLocation, nameToLocation SHOWIF isTransfer(type(s)),
+                  deliveryAddress, note
                   
     OBJECTS l = ShipmentLine
     PROPERTIES(l) index READONLY, nameProduct, nameUom, idBarCodeProduct, idProduct, 
@@ -126,6 +138,7 @@ DESIGN shipment {
                 }
                 NEW headerRight {
                     MOVE PROPERTY(nameCustomer(s));
+                    MOVE PROPERTY(nameDepartment(s));
                     MOVE PROPERTY(nameLocation(s)) { notNull = TRUE; }           
                     MOVE PROPERTY(nameToLocation(s)) { notNull = TRUE; }           
                 }
@@ -149,6 +162,16 @@ DESIGN shipment {
                     type = TABBED;
                 }                
             }                  
+            NEW otherInformation {
+                caption = 'Прочая информация';
+                type = COLUMNS;
+                columns = 2;
+                NEW shippingInformation {
+                    caption = 'Поставка';
+                    alignment = STRETCH;
+                    MOVE PROPERTY(deliveryAddress(s));
+                }
+            }
         }
     }
     TOOLBARBOX {
@@ -161,11 +184,11 @@ DESIGN shipment {
 @defineDocHistory(shipment, s, product, initialDemand);
 
 // shipments
-background (Shipment s) = ABSTRACT CASE COLOR (Shipment);
+background = ABSTRACT CASE COLOR (Shipment);
 
 FORM shipments 'Отгрузки'
-    OBJECTS s = Shipment
-    PROPERTIES(s) READONLYIF isReadonly() BACKGROUND background(s)
+    OBJECTS s = Shipment BACKGROUND background(s)
+    PROPERTIES(s) READONLYIF isReadonly()
                            nameType, scheduledDateTime, number, 
                            nameCustomer, nameLocation, nameToLocation,
                            note, countLines
@@ -189,7 +212,7 @@ immediateShipment 'Незапланированная отгрузка' () {
     NEWSESSION {
         NEW s = Shipment {
             immediate(s) <- TRUE;
-            SHOW shipment OBJECTS s = s DOCKED;
+            DIALOG shipment OBJECTS s = s DOCKED DO seek(s);
         }
     }
 } IMAGE 'add.png';

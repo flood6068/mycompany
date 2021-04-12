@@ -1,10 +1,10 @@
 MODULE BillType;
 
-REQUIRE Numerator, InvoicingSettings;
+REQUIRE Partner, Numerator, InvoicingSettings;
 
 NAMESPACE Invoicing;
 
-CLASS BillType 'Тип приобретения';
+CLASS BillType 'Тип поступления';
 name 'Название' = DATA ISTRING[50] (BillType) NONULL;
 
 id 'Код' = DATA STRING[20] (BillType);
@@ -13,11 +13,14 @@ billType = GROUP AGGR BillType t BY id(t);
 numerator 'Нумератор' = DATA Numerator (BillType);
 nameNumerator 'Нумератор' (BillType o) = name(numerator(o));
 
+vendor = DATA Partner (BillType);
+nameVendor 'Поставщик' (BillType o) = name(vendor(o));
+
 taxIncluded 'Цена включает налоги' = DATA BOOLEAN (BillType);
 
-FORM billType 'Тип приобретения'
+FORM billType 'Тип поступления'
     OBJECTS o = BillType PANEL 
-    PROPERTIES(o) name, id, nameNumerator, taxIncluded
+    PROPERTIES(o) name, id, nameNumerator, nameVendor, taxIncluded
      
     EDIT BillType OBJECT o;
 ;
@@ -31,7 +34,7 @@ DESIGN billType {
     }
 }
 
-FORM billTypes 'Типы приобретения'
+FORM billTypes 'Типы поступления'
     OBJECTS o = BillType
     PROPERTIES(o) READONLY name, id
     

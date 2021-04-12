@@ -4,15 +4,17 @@ REQUIRE IncomingPayment, DocTemplate;
 
 NAMESPACE Invoicing;
 
+fullNameCompany (IncomingPayment p) = fullName(company(p));
+
 FORM printIncomingPayment 'Входящий платeж'
 
     OBJECTS o = IncomingPayment PANEL 
     PROPERTIES(o)
         dateTime, number,
         namePartner, namePartnerAccount,
-        nameCompany, nameCompanyAccount,
+        nameCompany, fullNameCompany, nameCompanyAccount,
         amount, note, reference 
 ;
 
-@defineDocTemplate(incomingPayment, 'входящего платежа');
-@defineDocTemplateForm(incomingPayment, p);
+@defineDocTemplateType(incomingPayment, 'входящего платежа');
+@defineDocTemplateTypeForm(incomingPayment, p);

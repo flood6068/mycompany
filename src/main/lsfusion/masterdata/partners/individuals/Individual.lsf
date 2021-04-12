@@ -6,13 +6,15 @@ NAMESPACE MasterData;
 
 CLASS Individual 'Физическое лицо';
 
-firstName 'Имя' = DATA ISTRING[30] (Individual) NONULL;
+firstName '{First_name}' = DATA ISTRING[30] (Individual);
 lastName 'Фамилия' = DATA ISTRING[30] (Individual) NONULL;
 middleName 'Отчество' = DATA ISTRING[30] (Individual);
 
-legalEntity = DATA LegalEntity (Individual) NONULL;
+legalEntity = DATA LegalEntity (Individual);
 idLegalEntity 'Организация' (Individual i) = id(legalEntity(i));
 nameLegalEntity 'Организация' (Individual i) = name(legalEntity(i));
+
+countIndividual (Partner p) = GROUP SUM 1 IF legalEntity(Individual i) = p;  
 
 position = DATA Position (Individual);
 namePosition 'Должность' (Individual i) = name(position(i));
@@ -20,6 +22,8 @@ namePosition 'Должность' (Individual i) = name(position(i));
 EXTEND CLASS Individual : Partner;
 
 name (Individual i) += CONCAT ' ', lastName(i), firstName(i), middleName(i);
+fullName (Individual i) += CONCAT ' ', lastName(i), firstName(i), middleName(i);
+
 positionName (Individual i) = CONCAT ' ', namePosition(i), lastName(i), firstName(i), middleName(i);
 
 EXTEND CLASS PartnerType {
@@ -53,8 +57,7 @@ DESIGN partner {
 newIndividual 'Физическое лицо' () {
     NEWSESSION {
         NEW i = Individual {
-            
-            SHOW partner OBJECTS p = i;  
+            DIALOG partner OBJECTS p = i DOCKED DO seek(i);
         }
     }
 } IMAGE 'add.png';
@@ -87,7 +90,7 @@ DESIGN partner {
     tabs {
         NEW contacts {
             showIf = p IS LegalEntity;
-            caption = 'Контакты';
+            caption = (CONCAT ' ', 'Контакты', '(' + countIndividual(p) + ')');
             MOVE BOX(em);           
         }
     }
